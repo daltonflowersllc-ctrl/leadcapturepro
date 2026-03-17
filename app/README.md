@@ -53,15 +53,3 @@ For growing businesses that need more control
 2. **Get your dedicated phone number** from Twilio
 3. **Forward your missed calls** to your LeadCapture Pro number
 4. **Start capturing leads** immediately!
-
-## 🔧 Technical Setup
-
-For developers and technical users:
-
-### Environment Variables
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-TWILIO_ACCOUNT_SID=your_twilio_sid
-TWILIO_AUTH_TOKEN=your_twilio_token
-STRIPE_SECRET_KEY=your_stripe_key
