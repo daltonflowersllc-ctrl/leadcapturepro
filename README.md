@@ -2,7 +2,12 @@
 
 <div align="center">
   <h1>Never Lose Another Lead to a Missed Call</h1>
-  <p><strong>Automated lead capture for plumbers, electricians, HVAC techs, and home service businesses</strong></p>
+  <p><strong>Automated lead capture for:</strong></p>
+  <p>
+    🌳 Tree Services • 🏡 Landscaping • 🌱 Lawn Care<br>
+    🔧 Handyman Services • 🏠 Roofing • 🚽 Plumbing<br>
+    ⚡ Electrical • ❄️ HVAC • 🧹 Cleaning
+  </p>
   
   <p>
     <a href="#features">Features</a> •
@@ -17,6 +22,19 @@
 
 **LeadCapture Pro** automatically captures every missed call, sends an SMS with a quick form, and delivers the lead straight to your phone. Perfect for busy service professionals who can't always answer the phone while on the job.
 
+### Perfect For:
+| Service | Industry |
+|---------|----------|
+| 🌳 **Tree Service** | Tree removal, trimming, stump grinding |
+| 🏡 **Landscaping** | Design, hardscaping, maintenance |
+| 🌱 **Lawn Care** | Mowing, fertilization, aeration |
+| 🔧 **Handyman** | Repairs, installations, odd jobs |
+| 🏠 **Roofing** | Installation, repair, inspection |
+| 🚽 **Plumbing** | Leaks, installations, emergencies |
+| ⚡ **Electrical** | Wiring, fixtures, troubleshooting |
+| ❄️ **HVAC** | Heating, cooling, maintenance |
+| 🧹 **Cleaning** | Residential, commercial, deep cleaning |
+
 ### Why LeadCapture Pro?
 - 💰 **Never lose money** from missed opportunities
 - ⏰ **Save time** with automated lead capture
@@ -28,9 +46,12 @@
 ## 🎯 How It Works
 
 ### Simple 3-Step Process:
-1. **📞 Customer calls** - You're busy and miss the call
+1. **📞 Customer calls** - You're busy on a job and miss the call
 2. **📱 Auto-text sent** - Customer gets a text with a form link
 3. **🔔 You're notified** - Lead appears in dashboard + SMS alert
+
+### Real-World Example:
+> A homeowner needs emergency tree removal after a storm. They call you but you're on another job. Within seconds, they get a text, fill out the form, and you have a new lead - all without lifting a finger!
 
 ---
 
