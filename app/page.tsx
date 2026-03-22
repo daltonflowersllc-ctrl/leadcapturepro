@@ -295,7 +295,6 @@ export default function Home() {
       <section id="pricing" className="py-24 px-6 bg-slate-900">
         <div className="max-w-6xl mx-auto">
           
-cat << 'ENDOFFILE' > /mnt/user-data/outputs/page-bottom.tsx
           <div className="text-center mb-12">
             <p className="text-blue-400 font-medium text-sm uppercase tracking-widest mb-3">Pricing</p>
             <h2 className="font-display text-4xl md:text-5xl text-white">Simple, Transparent Pricing</h2>
