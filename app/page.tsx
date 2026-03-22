@@ -182,14 +182,14 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link href="/subscribe" className="w-full sm:w-auto bg-blue-500 hover:bg-blue-400 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40">
-              Start 7-Day Free Trial \u2192
+              Start 7-Day Free Trial →
             </Link>
             <a href="#how-it-works" className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors border border-slate-700">
               See How It Works
             </a>
           </div>
 
-          <p className="text-sm text-slate-500">\ud83d\udcb3 Credit card required \u2022 Cancel before day 8 \u2022 256-bit SSL</p>
+          <p className="text-sm text-slate-500">💳 Credit card required • Cancel before day 8 • 256-bit SSL</p>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16 pt-16 border-t border-slate-800">
