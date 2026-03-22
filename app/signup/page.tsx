@@ -60,7 +60,7 @@ export default function SignupPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      router.push('/dashboard');
+      router.push('/subscribe');
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {
