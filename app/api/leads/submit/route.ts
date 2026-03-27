@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Look up caller phone from call record if callId provided
     let callerPhone = '';
     if (callId) {
-      const callRecord = await db
+      const callRecord = await getDb()
         .select({ callerNumber: calls.callerNumber })
         .from(calls)
         .where(eq(calls.id, callId))
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Save lead to database
     const leadId = generateId();
-    await db.insert(leads).values({
+    await getDb().insert(leads).values({
       id: leadId,
       userId,
       callId: callId || null,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Fetch business owner phone to send SMS notification
-    const userRecord = await db
+    const userRecord = await getDb()
       .select({ phone: users.phone, businessName: users.businessName, name: users.name })
       .from(users)
       .where(eq(users.id, userId))
