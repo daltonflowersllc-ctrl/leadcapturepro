@@ -2,10 +2,19 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
+import webpush from 'web-push';
 import { getDb } from '@/lib/db';
 import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:admin@leadcapturepro.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,9 +81,9 @@ export async function POST(request: NextRequest) {
       formData: storedFormData,
     });
 
-    // Fetch business owner info for SMS and webhook
+    // Fetch business owner info for SMS, webhook, and push notifications
     const userRecord = await getDb()
-      .select({ phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl })
+      .select({ phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -136,6 +145,26 @@ export async function POST(request: NextRequest) {
           console.error('Webhook delivery error:', webhookError);
           // Non-fatal — lead is saved even if webhook fails
         }
+      }
+    }
+
+    // Send web push notification to business owner if they have a subscription
+    if (userRecord.length > 0 && userRecord[0].pushSubscription && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+      try {
+        const subscription = JSON.parse(userRecord[0].pushSubscription);
+        const urgencyLabel = urgency ? ` (${urgency} urgency)` : '';
+        const serviceLabel = serviceType ? serviceType : 'a service';
+        await webpush.sendNotification(
+          subscription,
+          JSON.stringify({
+            title: 'New Lead!',
+            body: `${callerName} needs ${serviceLabel}${urgencyLabel}`,
+            url: '/dashboard',
+          })
+        );
+      } catch (pushError) {
+        console.error('Push notification error:', pushError);
+        // Non-fatal — lead is saved even if push fails
       }
     }
 

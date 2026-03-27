@@ -17,6 +17,7 @@ export const users = pgTable('users', {
   billingCycleStart: timestamp('billing_cycle_start'),
   billingCycleEnd: timestamp('billing_cycle_end'),
   webhookUrl: text('webhook_url'),
+  pushSubscription: text('push_subscription'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
