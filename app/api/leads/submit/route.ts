@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
       formData: storedFormData,
     });
 
-    // Fetch business owner phone to send SMS notification
+    // Fetch business owner info for SMS and webhook
     const userRecord = await getDb()
-      .select({ phone: users.phone, businessName: users.businessName, name: users.name })
+      .select({ phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -106,6 +106,37 @@ export async function POST(request: NextRequest) {
         from: process.env.TWILIO_PHONE_NUMBER,
         to: owner.phone,
       });
+    }
+
+    // Fire Zapier webhook if user is Pro or Elite and has a webhook URL set
+    if (userRecord.length > 0) {
+      const owner = userRecord[0];
+      if ((owner.tier === 'pro' || owner.tier === 'elite') && owner.webhookUrl) {
+        const webhookPayload = {
+          leadId,
+          callerName,
+          callerPhone,
+          callerEmail: callerEmail || null,
+          serviceType: serviceType || null,
+          urgency: urgency || null,
+          budget: budget || null,
+          description: description || null,
+          callbackTime: callbackTime || null,
+          photoUrl: photo ? storedFormData.photoName : null,
+          businessName: owner.businessName || owner.name || null,
+          receivedAt: new Date().toISOString(),
+        };
+        try {
+          await fetch(owner.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload),
+          });
+        } catch (webhookError) {
+          console.error('Webhook delivery error:', webhookError);
+          // Non-fatal — lead is saved even if webhook fails
+        }
+      }
     }
 
     return NextResponse.json(

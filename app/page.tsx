@@ -27,7 +27,8 @@ export default function Home() {
         "Missed call detection",
         "Auto-SMS to caller",
         "Basic lead form",
-        "Lead dashboard",
+        "Lead management dashboard",
+        "One-tap call back",
         "SMS notifications to owner",
         "1 phone number",
         "100 SMS/month included",
@@ -46,6 +47,8 @@ export default function Home() {
       features: [
         "Everything in Starter",
         "Smart lead form (service type, urgency, budget, photo, callback time)",
+        "Zapier integration — connect to 5,000+ apps",
+        "Native CRM sync coming soon",
         "Custom SMS templates",
         "Multi-step follow-up SMS",
         "Lead scoring (hot/warm/cold)",
