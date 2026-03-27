@@ -8,6 +8,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [webhookMessage, setWebhookMessage] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -26,6 +29,30 @@ export default function SettingsPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/');
+  };
+
+  const handleSaveWebhook = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setWebhookSaving(true);
+    setWebhookMessage('');
+    try {
+      const res = await fetch('/api/settings/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ webhookUrl }),
+      });
+      if (res.ok) {
+        setWebhookMessage('Webhook URL saved successfully.');
+      } else {
+        const data = await res.json();
+        setWebhookMessage(data.error || 'Failed to save webhook URL.');
+      }
+    } catch {
+      setWebhookMessage('Failed to save webhook URL.');
+    } finally {
+      setWebhookSaving(false);
+    }
   };
 
   if (loading) {
@@ -159,6 +186,45 @@ export default function SettingsPage() {
             Manage Templates
           </button>
         </div>
+
+        {/* Integrations (Pro and Elite only) */}
+        {(user?.tier === 'pro' || user?.tier === 'elite') && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Integrations</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Connect LeadCapture Pro to your other tools via Zapier.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Zapier Webhook URL
+                </label>
+                <input
+                  type="url"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.zapier.com/hooks/catch/..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Connect to Jobber, HubSpot, Google Sheets and 5,000+ apps
+                </p>
+              </div>
+              {webhookMessage && (
+                <p className={`text-sm ${webhookMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                  {webhookMessage}
+                </p>
+              )}
+              <button
+                onClick={handleSaveWebhook}
+                disabled={webhookSaving}
+                className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {webhookSaving ? 'Saving…' : 'Save Webhook URL'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
