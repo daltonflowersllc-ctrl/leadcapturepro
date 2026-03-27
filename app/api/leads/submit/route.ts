@@ -5,11 +5,6 @@ import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
 
-const twilioClient = twilio(
-  process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -100,6 +95,10 @@ export async function POST(request: NextRequest) {
         .filter(Boolean)
         .join('\n');
 
+      const twilioClient = twilio(
+        process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
       await twilioClient.messages.create({
         body: smsBody,
         from: process.env.TWILIO_PHONE_NUMBER,
