@@ -113,6 +113,31 @@ Complete solution for busy companies
 
 ---
 
+## 🔔 PWA & Push Notifications
+
+LeadCapture Pro is a Progressive Web App (PWA). Business owners can install it on their home screen and receive instant push notifications for new leads.
+
+### Vercel Environment Variables
+
+Add the following environment variables in your Vercel project settings:
+
+| Variable | Description |
+|----------|-------------|
+| `VAPID_PUBLIC_KEY` | VAPID public key for web push notifications |
+| `VAPID_PRIVATE_KEY` | VAPID private key for web push notifications |
+
+#### Generating VAPID Keys
+
+Run the following command to generate your VAPID key pair:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Copy the output values into your Vercel environment variables. The public key should also be made available to the frontend (prefix with `NEXT_PUBLIC_` or pass it via an API endpoint).
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Sign Up for Trial
