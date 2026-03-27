@@ -5,6 +5,8 @@ import Link from "next/link";
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [annual, setAnnual] = useState(false);
+  const [missedCalls, setMissedCalls] = useState(5);
+  const [avgJobValue, setAvgJobValue] = useState(500);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -14,40 +16,43 @@ export default function Home() {
 
   const plans = [
     {
-      name: "Basic",
-      monthly: 199,
-      annual: 1990,
-      annualSavings: 398,
+      name: "Starter",
+      monthly: 149,
+      annual: 1490,
+      annualSavings: 298,
       color: "from-slate-800 to-slate-900",
       border: "border-slate-700",
       badge: null,
       features: [
         "Missed call detection",
-        "Auto-SMS to callers",
-        "Lead capture form",
+        "Auto-SMS to caller",
+        "Basic lead form",
         "Lead dashboard",
-        "SMS notifications",
+        "SMS notifications to owner",
         "1 phone number",
+        "100 SMS/month included",
       ],
       cta: "Start Free Trial",
       ctaStyle: "bg-white text-slate-900 hover:bg-slate-100",
     },
     {
       name: "Pro",
-      monthly: 299,
-      annual: 2990,
-      annualSavings: 598,
+      monthly: 249,
+      annual: 2490,
+      annualSavings: 498,
       color: "from-blue-600 to-blue-800",
       border: "border-blue-400",
       badge: "MOST POPULAR",
       features: [
-        "Everything in Basic",
+        "Everything in Starter",
+        "Smart lead form (service type, urgency, budget, photo, callback time)",
         "Custom SMS templates",
-        "Lead scoring",
-        "Photo uploads in forms",
-        "Multi-step SMS follow-up",
-        "Priority support",
+        "Multi-step follow-up SMS",
+        "Lead scoring (hot/warm/cold)",
+        "Business hours settings",
+        "Response time tracker",
         "3 phone numbers",
+        "500 SMS/month",
         "Team access (2 users)",
       ],
       cta: "Start Free Trial",
@@ -55,20 +60,21 @@ export default function Home() {
     },
     {
       name: "Elite",
-      monthly: 499,
-      annual: 4990,
-      annualSavings: 998,
+      monthly: 399,
+      annual: 3990,
+      annualSavings: 798,
       color: "from-violet-700 to-violet-900",
       border: "border-violet-500",
       badge: "COMING SOON",
       features: [
         "Everything in Pro",
         "AI voice agent",
-        "Call transcription",
+        "Voicemail transcription",
         "Auto-schedule estimates",
         "Calendar integration",
-        "API access",
+        "Jobber & Housecall Pro integration",
         "5 phone numbers",
+        "Unlimited SMS",
         "Dedicated account manager",
       ],
       cta: "Join Waitlist",
@@ -207,6 +213,84 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ROI Calculator */}
+      <section className="py-24 px-6 bg-slate-950">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-blue-400 font-medium text-sm uppercase tracking-widest mb-3">ROI Calculator</p>
+            <h2 className="font-display text-4xl md:text-5xl text-white">How Much Are You Losing?</h2>
+            <p className="text-slate-400 mt-4 text-lg">See exactly what missed calls are costing you every month.</p>
+          </div>
+
+          <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800">
+            <div className="space-y-8 mb-10">
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-white font-medium">Missed calls per week</label>
+                  <span className="text-2xl font-bold text-blue-400">{missedCalls}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={20}
+                  value={missedCalls}
+                  onChange={(e) => setMissedCalls(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer accent-blue-500"
+                />
+                <div className="flex justify-between text-xs text-slate-600 mt-1">
+                  <span>1</span>
+                  <span>20</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-white font-medium">Average job value</label>
+                  <span className="text-2xl font-bold text-blue-400">${avgJobValue.toLocaleString()}</span>
+                </div>
+                <input
+                  type="range"
+                  min={100}
+                  max={2000}
+                  step={50}
+                  value={avgJobValue}
+                  onChange={(e) => setAvgJobValue(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer accent-blue-500"
+                />
+                <div className="flex justify-between text-xs text-slate-600 mt-1">
+                  <span>$100</span>
+                  <span>$2,000</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="p-6 rounded-xl bg-slate-800 border border-slate-700 text-center">
+                <div className="text-sm text-slate-400 mb-2">Monthly Lost Revenue</div>
+                <div className="text-3xl font-bold text-red-400">
+                  ${Math.round(missedCalls * 4.33 * avgJobValue).toLocaleString()}
+                </div>
+              </div>
+              <div className="p-6 rounded-xl bg-slate-800 border border-slate-700 text-center">
+                <div className="text-sm text-slate-400 mb-2">Annual Lost Revenue</div>
+                <div className="text-3xl font-bold text-red-400">
+                  ${Math.round(missedCalls * 4.33 * avgJobValue * 12).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center">
+              <p className="text-blue-300 font-semibold text-lg">
+                LeadCapture Pro Starter is <span className="text-white">$149/mo</span>
+              </p>
+              <p className="text-slate-400 mt-1 text-sm">
+                It pays for itself by recovering just <span className="text-green-400 font-semibold">1 job per month</span> — you&apos;re missing {missedCalls * 4 > 1 ? `${Math.round(missedCalls * 4.33)}` : "multiple"} per month.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section id="how-it-works" className="py-24 px-6 bg-slate-900">
         <div className="max-w-6xl mx-auto">
@@ -341,7 +425,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Link
-                  href={plan.name === "Elite" ? "#" : `/subscribe?plan=${plan.name.toLowerCase()}`}
+                  href={`/subscribe?plan=${plan.name.toLowerCase()}`}
                   className={`block text-center py-3 rounded-xl font-semibold transition-colors ${plan.ctaStyle}`}
                 >
                   {plan.cta}
