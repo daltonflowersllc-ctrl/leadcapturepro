@@ -160,6 +160,7 @@ export default function Home() {
           <div className="hidden md:flex items-center space-x-8 text-sm text-slate-400">
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <Link href="/setup" className="hover:text-white transition-colors">Setup Guide</Link>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           </div>
           <div className="flex items-center space-x-4">
@@ -374,6 +375,73 @@ export default function Home() {
                 <span key={s} className="px-4 py-2 bg-slate-800 rounded-full text-sm text-slate-300 border border-slate-700">{s}</span>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Setup / Up and Running in 10 Minutes */}
+      <section id="setup" className="py-24 px-6 bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-blue-400 font-medium text-sm uppercase tracking-widest mb-3">Quick Setup</p>
+            <h2 className="font-display text-4xl md:text-5xl text-white">Up and Running in 10 Minutes</h2>
+            <p className="text-slate-400 mt-4 text-lg">No IT required. Works with your existing phone number and any carrier.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[
+              {
+                step: "01",
+                icon: "👤",
+                title: "Create Your Account",
+                desc: "Sign up, choose your plan, and enter your business name and phone number.",
+                color: "bg-blue-500/10 border-blue-500/20",
+                numberColor: "text-blue-400",
+              },
+              {
+                step: "02",
+                icon: "📲",
+                title: "Get Your LeadCapture Number",
+                desc: "We automatically assign you a local number matching your area code. Missed calls forward here.",
+                color: "bg-violet-500/10 border-violet-500/20",
+                numberColor: "text-violet-400",
+              },
+              {
+                step: "03",
+                icon: "📡",
+                title: "Set Up Call Forwarding",
+                desc: "Dial one short code on your phone. Works with AT&T, Verizon, T-Mobile, and every major carrier.",
+                color: "bg-amber-500/10 border-amber-500/20",
+                numberColor: "text-amber-400",
+              },
+              {
+                step: "04",
+                icon: "🔔",
+                title: "Install App & Get Notified",
+                desc: "Add to your home screen and tap Allow. Get instant push notifications the second a lead comes in.",
+                color: "bg-emerald-500/10 border-emerald-500/20",
+                numberColor: "text-emerald-400",
+              },
+            ].map((item) => (
+              <div key={item.step} className={`card-hover relative p-6 rounded-2xl border ${item.color} bg-slate-950/50`}>
+                <div className={`text-xs font-bold tracking-widest mb-3 ${item.numberColor}`}>{item.step}</div>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/setup"
+              className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-white px-7 py-3.5 rounded-xl font-semibold transition-colors"
+            >
+              View Full Setup Guide
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
