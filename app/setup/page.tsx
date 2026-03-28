@@ -48,9 +48,9 @@ const carrierInstructions: Record<string, CarrierInstruction> = {
   },
   tmobile: {
     type: "starcode",
-    enableCode: "**61*[YourLeadCaptureNumber]#",
+    enableCode: "61[YourLeadCaptureNumber]*",
     disableCode: "##61#",
-    copyValue: "**61*[YourLeadCaptureNumber]#",
+    copyValue: "61[YourLeadCaptureNumber]*",
     copyLabel: "Copy Enable Code",
     note: "Dial the enable code then press Call.",
     disableSteps: "To disable: dial ##61# then press Call.",
