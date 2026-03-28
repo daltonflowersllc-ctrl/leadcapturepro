@@ -161,6 +161,7 @@ export default function Home() {
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <Link href="/setup" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">Setup Guide</Link>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">Log in</Link>
@@ -374,6 +375,69 @@ export default function Home() {
                 <span key={s} className="px-4 py-2 bg-slate-800 rounded-full text-sm text-slate-300 border border-slate-700">{s}</span>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Up and Running in 10 Minutes */}
+      <section className="py-24 px-6 bg-slate-900">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-green-400 font-medium text-sm uppercase tracking-widest mb-3">Quick Setup</p>
+            <h2 className="font-display text-4xl md:text-5xl text-white">Up and Running in 10 Minutes</h2>
+            <p className="text-slate-400 mt-4 text-lg">No IT required. Works with your existing phone number and any carrier.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[
+              {
+                step: "01",
+                icon: "✍️",
+                title: "Create Your Account",
+                desc: "Sign up, choose a plan, and enter your business name and phone number.",
+                color: "border-blue-500/20 bg-blue-500/5",
+              },
+              {
+                step: "02",
+                icon: "📍",
+                title: "Get Your LeadCapture Number",
+                desc: "We automatically assign you a local number matching your area code.",
+                color: "border-violet-500/20 bg-violet-500/5",
+              },
+              {
+                step: "03",
+                icon: "📲",
+                title: "Set Up Call Forwarding",
+                desc: "Dial one short code on your phone to forward unanswered calls — takes 30 seconds.",
+                color: "border-amber-500/20 bg-amber-500/5",
+              },
+              {
+                step: "04",
+                icon: "🔔",
+                title: "Install App & Get Notified",
+                desc: "Add the app to your home screen and enable push notifications for instant lead alerts.",
+                color: "border-emerald-500/20 bg-emerald-500/5",
+              },
+            ].map((item) => (
+              <div key={item.step} className={`relative p-6 rounded-2xl border ${item.color}`}>
+                <div className="text-xs font-bold text-slate-600 tracking-widest mb-3">{item.step}</div>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h3 className="text-base font-semibold text-white mb-2">{item.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/setup"
+              className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors border border-slate-700"
+            >
+              View Full Setup Guide
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
