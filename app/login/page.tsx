@@ -29,8 +29,6 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/dashboard');
     } catch {
       setError('An error occurred. Please try again.');
@@ -106,8 +104,8 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
               Don&apos;t have an account?{' '}
-              <Link href="/subscribe" className="text-blue-400 hover:text-blue-300 font-medium">
-                Start free trial
+              <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
+                Sign up
               </Link>
             </p>
           </div>

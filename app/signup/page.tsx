@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 const planLabels: Record<string, string> = {
   starter: 'Starter — $149/mo',
   pro: 'Pro — $249/mo (Most Popular)',
-  elite: 'Elite — $399/mo (Waitlist)',
+  elite: 'Elite — $399/mo',
 };
 
 function SignupForm() {
@@ -50,10 +50,10 @@ function SignupForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
-          password: formData.password,
           businessName: formData.businessName,
           phone: formData.phone,
+          email: formData.email,
+          password: formData.password,
           plan,
         }),
       });
@@ -65,8 +65,6 @@ function SignupForm() {
         return;
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/dashboard');
     } catch {
       setError('An error occurred. Please try again.');
@@ -96,7 +94,7 @@ function SignupForm() {
             </div>
             <span className="text-lg font-semibold">LeadCapture Pro</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white mb-3">Start Your 7-Day Trial</h1>
+          <h1 className="text-3xl font-bold text-white mb-3">Create Your Account</h1>
           <div className="inline-block bg-blue-500/20 border border-blue-500/40 text-blue-300 px-4 py-1.5 rounded-full text-sm font-medium">
             Selected: {planLabels[plan] ?? plan}
           </div>
@@ -135,18 +133,6 @@ function SignupForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
-              <input
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Phone Number</label>
               <input
                 name="phone"
@@ -155,6 +141,18 @@ function SignupForm() {
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="+1 (555) 000-0000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
+              <input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
               />
             </div>
 
@@ -187,12 +185,12 @@ function SignupForm() {
               disabled={loading}
               className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 mt-2"
             >
-              {loading ? 'Creating account...' : 'Start Free Trial →'}
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </div>
 
           <p className="text-center text-xs text-slate-500 mt-4">
-            💳 Credit card required • Cancel before day 8 • 256-bit SSL
+            7-day free trial • Cancel anytime • 256-bit SSL
           </p>
 
           <div className="mt-6 text-center">

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, comparePassword } from '@/lib/auth';
 import { getDb } from '@/lib/db';
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const token = generateToken({ userId: user.id, email: user.email, tier: user.tier });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -45,8 +47,17 @@ export async function POST(request: NextRequest) {
         tier: user.tier,
         subscriptionStatus: user.subscriptionStatus,
       },
-      token,
     });
+
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
