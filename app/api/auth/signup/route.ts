@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { generateToken, hashPassword, generateId } from '@/lib/auth';
+import { generateToken, hashPassword } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -35,12 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
-    const userId = generateId();
+    const userId = crypto.randomUUID();
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
-    const tier =
-      plan === 'pro' ? 'pro' : plan === 'elite' ? 'elite' : 'starter';
+    const tier = plan === 'pro' ? 'pro' : plan === 'elite' ? 'elite' : 'starter';
 
     await db.insert(users).values({
       id: userId,
@@ -56,14 +57,23 @@ export async function POST(request: NextRequest) {
 
     const token = generateToken({ userId, email, tier });
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         user: { id: userId, email, name, businessName: businessName || null, tier, trialEndsAt },
-        token,
       },
       { status: 201 }
     );
+
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Signup error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
