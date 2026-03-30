@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { getDb } from '@/lib/db';
+import { phoneNumbers } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from Authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -22,12 +24,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO:
-    // 1. Query user data from database
-    // 2. Get recent calls
-    // 3. Get recent leads
-    // 4. Get usage statistics
-    // 5. Get subscription info
+    const phoneResult = await getDb()
+      .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber, twilioSid: phoneNumbers.twilioSid })
+      .from(phoneNumbers)
+      .where(eq(phoneNumbers.userId, payload.userId))
+      .limit(1);
+
+    const assignedPhone = phoneResult[0]?.twilioPhoneNumber ?? null;
+    const assignedPhoneSid = phoneResult[0]?.twilioSid ?? null;
 
     const dashboardData = {
       user: {
@@ -35,6 +39,8 @@ export async function GET(request: NextRequest) {
         email: payload.email,
         tier: payload.tier,
       },
+      assignedPhone,
+      assignedPhoneSid,
       stats: {
         missedCalls: 0,
         leadsCapture: 0,

@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import DashboardClient from './DashboardClient';
 
@@ -37,5 +37,13 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  return <DashboardClient user={user} />;
+  const phoneResult = await db
+    .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber })
+    .from(phoneNumbers)
+    .where(eq(phoneNumbers.userId, payload.userId))
+    .limit(1);
+
+  const assignedPhone = phoneResult[0]?.twilioPhoneNumber ?? null;
+
+  return <DashboardClient user={user} assignedPhone={assignedPhone} />;
 }

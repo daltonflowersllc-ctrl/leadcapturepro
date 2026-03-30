@@ -11,6 +11,15 @@ interface User {
   subscriptionStatus: string;
 }
 
+function formatPhoneNumber(e164: string): string {
+  const digits = e164.replace(/\D/g, '');
+  const local = digits.length === 11 && digits[0] === '1' ? digits.slice(1) : digits;
+  if (local.length === 10) {
+    return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  }
+  return e164;
+}
+
 interface Lead {
   id: string;
   callerName: string;
@@ -281,7 +290,7 @@ function LeadCard({
   );
 }
 
-export default function DashboardClient({ user }: { user: User }) {
+export default function DashboardClient({ user, assignedPhone }: { user: User; assignedPhone: string | null }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -383,6 +392,30 @@ export default function DashboardClient({ user }: { user: User }) {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-1">Leads Won</p>
             <p className="text-4xl font-bold text-green-600">{leadsWon}</p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 mb-8">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Your LeadCapture Pro Number</h3>
+          {assignedPhone ? (
+            <>
+              <p className="text-4xl font-bold text-blue-600 tracking-wide mb-2">
+                {formatPhoneNumber(assignedPhone)}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Set up call forwarding to this number to start capturing leads
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400 mb-4">
+              Your phone number is being assigned. Check back shortly or contact support.
+            </p>
+          )}
+          <Link
+            href="/setup"
+            className="inline-block bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition"
+          >
+            View Setup Instructions
+          </Link>
         </div>
 
         <div>
