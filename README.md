@@ -125,6 +125,7 @@ Add the following environment variables in your Vercel project settings:
 |----------|-------------|
 | `VAPID_PUBLIC_KEY` | VAPID public key for web push notifications |
 | `VAPID_PRIVATE_KEY` | VAPID private key for web push notifications |
+| `GROQ_API_KEY` | Groq API key for AI-powered lead scoring, smart SMS, voicemail transcription, and call scripts |
 
 #### Generating VAPID Keys
 

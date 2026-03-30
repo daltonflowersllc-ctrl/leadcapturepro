@@ -1,3 +1,4 @@
+// Run npm run db:push to create tables in Supabase
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
