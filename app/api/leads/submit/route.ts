@@ -7,6 +7,7 @@ import { getDb } from '@/lib/db';
 import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
+import { scoreLead, generateOwnerSMS } from '@/lib/ai';
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -46,14 +47,16 @@ export async function POST(request: NextRequest) {
 
     // Look up caller phone from call record if callId provided
     let callerPhone = '';
+    let voicemailTranscription: string | null = null;
     if (callId) {
       const callRecord = await getDb()
-        .select({ callerNumber: calls.callerNumber })
+        .select({ callerNumber: calls.callerNumber, transcriptText: calls.transcriptText })
         .from(calls)
         .where(eq(calls.id, callId))
         .limit(1);
       if (callRecord.length > 0) {
         callerPhone = callRecord[0].callerNumber;
+        voicemailTranscription = callRecord[0].transcriptText || null;
       }
     }
 
@@ -64,6 +67,19 @@ export async function POST(request: NextRequest) {
     if (description) storedFormData.description = description;
     if (callbackTime) storedFormData.callbackTime = callbackTime;
     if (photo) storedFormData.photoName = photo.name;
+    if (voicemailTranscription) storedFormData.transcription = voicemailTranscription;
+
+    // Score the lead with AI
+    const aiScore = await scoreLead(
+      serviceType || '',
+      urgency || '',
+      budget || '',
+      description || ''
+    );
+    storedFormData.aiScore = aiScore.score;
+    storedFormData.aiEmoji = aiScore.emoji;
+    storedFormData.aiReason = aiScore.reason;
+    storedFormData.aiConfidence = String(aiScore.confidence);
 
     // Save lead to database
     const leadId = generateId();
@@ -92,19 +108,20 @@ export async function POST(request: NextRequest) {
       const owner = userRecord[0];
       const businessLabel = owner.businessName || owner.name || 'Your business';
 
-      const smsBody = [
-        `New Lead - ${businessLabel}`,
-        `Name: ${callerName}`,
-        callerEmail ? `Email: ${callerEmail}` : null,
-        callerPhone ? `Phone: ${callerPhone}` : null,
-        serviceType ? `Service: ${serviceType}` : null,
-        urgency ? `Urgency: ${urgency}` : null,
-        budget ? `Budget: ${budget}` : null,
-        description ? `Notes: ${description}` : null,
-        callbackTime ? `Callback: ${callbackTime}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n');
+      // Generate AI owner SMS
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      const rawOwnerSms = await generateOwnerSMS(
+        businessLabel,
+        callerName,
+        callerPhone,
+        serviceType || '',
+        urgency || '',
+        budget || '',
+        description || '',
+        aiScore.score,
+        aiScore.emoji
+      );
+      const smsBody = rawOwnerSms.replace('[APP_URL]', appUrl);
 
       const twilioClient = twilio(
         process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
@@ -133,6 +150,9 @@ export async function POST(request: NextRequest) {
           callbackTime: callbackTime || null,
           photoUrl: photo ? storedFormData.photoName : null,
           businessName: owner.businessName || owner.name || null,
+          aiScore: aiScore.score,
+          aiEmoji: aiScore.emoji,
+          aiReason: aiScore.reason,
           receivedAt: new Date().toISOString(),
         };
         try {
@@ -157,7 +177,7 @@ export async function POST(request: NextRequest) {
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
-            title: 'New Lead!',
+            title: `${aiScore.emoji} New Lead!`,
             body: `${callerName} needs ${serviceLabel}${urgencyLabel}`,
             url: '/dashboard',
           })

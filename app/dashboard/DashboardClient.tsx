@@ -53,6 +53,21 @@ function urgencyBadge(urgency: string | null) {
   return null;
 }
 
+function aiScoreBadge(score: string | undefined, emoji: string | undefined) {
+  if (!score || !emoji) return null;
+  const colorMap: Record<string, string> = {
+    hot: 'bg-red-100 text-red-700',
+    warm: 'bg-yellow-100 text-yellow-700',
+    cold: 'bg-blue-100 text-blue-700',
+  };
+  const cls = colorMap[score] || 'bg-gray-100 text-gray-700';
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${cls}`}>
+      {emoji} {score}
+    </span>
+  );
+}
+
 const STATUS_BUTTONS = [
   { value: 'new', label: 'New', active: 'bg-blue-600 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
   { value: 'contacted', label: 'Contacted', active: 'bg-yellow-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
@@ -72,10 +87,18 @@ function LeadCard({
   const [notes, setNotes] = useState(lead.notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [scripts, setScripts] = useState<string[] | null>(null);
+  const [loadingScripts, setLoadingScripts] = useState(false);
+  const [scriptsOpen, setScriptsOpen] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const serviceType = lead.serviceNeeded || lead.formData?.serviceType || null;
   const budget = lead.formData?.budget || null;
   const description = lead.formData?.description || lead.notes || null;
+  const aiScore = lead.formData?.aiScore;
+  const aiEmoji = lead.formData?.aiEmoji;
+  const aiReason = lead.formData?.aiReason;
+  const transcription = lead.formData?.transcription;
 
   const handleStatusClick = async (status: string) => {
     if (savingStatus || lead.status === status) return;
@@ -106,6 +129,35 @@ function LeadCard({
     }
   };
 
+  const handleGetScripts = async () => {
+    if (scripts) {
+      setScriptsOpen((o) => !o);
+      return;
+    }
+    setLoadingScripts(true);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/scripts`);
+      if (!res.ok) throw new Error('Failed to fetch scripts');
+      const data = await res.json();
+      setScripts(data.scripts || []);
+      setScriptsOpen(true);
+    } catch {
+      setScripts([]);
+    } finally {
+      setLoadingScripts(false);
+    }
+  };
+
+  const handleCopy = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      // clipboard not available
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -123,9 +175,14 @@ function LeadCard({
         </div>
         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
           {urgencyBadge(lead.urgency)}
+          {aiScoreBadge(aiScore, aiEmoji)}
           <span className="text-xs text-gray-400">{timeSince(lead.createdAt)}</span>
         </div>
       </div>
+
+      {aiReason && (
+        <p className="text-xs text-gray-500 mb-2 italic">AI: {aiReason}</p>
+      )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-sm text-gray-600">
         {serviceType && (
@@ -146,6 +203,13 @@ function LeadCard({
         </p>
       )}
 
+      {transcription && (
+        <div className="mb-3 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+          <p className="text-xs font-semibold text-purple-700 mb-0.5">🎙 Voicemail</p>
+          <p className="text-xs text-purple-800">{transcription}</p>
+        </div>
+      )}
+
       <div className="flex gap-1.5 mb-3 flex-wrap">
         {STATUS_BUTTONS.map((btn) => (
           <button
@@ -161,7 +225,7 @@ function LeadCard({
         ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-3">
         <input
           type="text"
           value={notes}
@@ -177,6 +241,42 @@ function LeadCard({
           {savingNotes ? 'Saving…' : 'Save'}
         </button>
       </div>
+
+      <button
+        onClick={handleGetScripts}
+        disabled={loadingScripts}
+        className="w-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-100 transition font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
+      >
+        {loadingScripts ? (
+          <>
+            <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></span>
+            Generating scripts…
+          </>
+        ) : scriptsOpen ? '▲ Hide Call Scripts' : '📞 Get Call Scripts'}
+      </button>
+
+      {scriptsOpen && scripts && scripts.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {scripts.map((script, i) => (
+            <div key={i} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Script {i + 1}</span>
+                <button
+                  onClick={() => handleCopy(script, i)}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {copiedIndex === i ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{script}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {scriptsOpen && scripts && scripts.length === 0 && (
+        <p className="mt-2 text-xs text-gray-400 text-center">No scripts available.</p>
+      )}
     </div>
   );
 }
