@@ -1,12 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import ROICalculator from "./components/ROICalculator";
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [annual, setAnnual] = useState(false);
-  const [missedCalls, setMissedCalls] = useState(5);
-  const [avgJobValue, setAvgJobValue] = useState(500);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -217,83 +216,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ROI Calculator */}
-      <section className="py-24 px-6 bg-slate-950">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-blue-400 font-medium text-sm uppercase tracking-widest mb-3">ROI Calculator</p>
-            <h2 className="font-display text-4xl md:text-5xl text-white">How Much Are You Losing?</h2>
-            <p className="text-slate-400 mt-4 text-lg">See exactly what missed calls are costing you every month.</p>
-          </div>
-
-          <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800">
-            <div className="space-y-8 mb-10">
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-white font-medium">Missed calls per week</label>
-                  <span className="text-2xl font-bold text-blue-400">{missedCalls}</span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={20}
-                  value={missedCalls}
-                  onChange={(e) => setMissedCalls(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer accent-blue-500"
-                />
-                <div className="flex justify-between text-xs text-slate-600 mt-1">
-                  <span>1</span>
-                  <span>20</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-white font-medium">Average job value</label>
-                  <span className="text-2xl font-bold text-blue-400">${avgJobValue.toLocaleString()}</span>
-                </div>
-                <input
-                  type="range"
-                  min={100}
-                  max={2000}
-                  step={50}
-                  value={avgJobValue}
-                  onChange={(e) => setAvgJobValue(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer accent-blue-500"
-                />
-                <div className="flex justify-between text-xs text-slate-600 mt-1">
-                  <span>$100</span>
-                  <span>$2,000</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="p-6 rounded-xl bg-slate-800 border border-slate-700 text-center">
-                <div className="text-sm text-slate-400 mb-2">Monthly Lost Revenue</div>
-                <div className="text-3xl font-bold text-red-400">
-                  ${Math.round(missedCalls * 4.33 * avgJobValue).toLocaleString()}
-                </div>
-              </div>
-              <div className="p-6 rounded-xl bg-slate-800 border border-slate-700 text-center">
-                <div className="text-sm text-slate-400 mb-2">Annual Lost Revenue</div>
-                <div className="text-3xl font-bold text-red-400">
-                  ${Math.round(missedCalls * 4.33 * avgJobValue * 12).toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center">
-              <p className="text-blue-300 font-semibold text-lg">
-                LeadCapture Pro Starter is <span className="text-white">$149/mo</span>
-              </p>
-              <p className="text-slate-400 mt-1 text-sm">
-                It pays for itself by recovering just <span className="text-green-400 font-semibold">1 job per month</span> — you&apos;re missing {missedCalls * 4 > 1 ? `${Math.round(missedCalls * 4.33)}` : "multiple"} per month.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ROICalculator />
 
       {/* How It Works */}
       <section id="how-it-works" className="py-24 px-6 bg-slate-900">
@@ -570,9 +493,9 @@ export default function Home() {
             <div>
               <h4 className="text-white font-medium mb-4 text-sm">Company</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+                <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="mailto:support@leadcapturepro.app" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
@@ -584,7 +507,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 text-center text-sm text-slate-600">
-            2024 LeadCapture Pro. All rights reserved.
+            © 2025 LeadCapture Pro. All rights reserved.
           </div>
         </div>
       </footer>

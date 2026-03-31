@@ -6,6 +6,8 @@ import { getDb } from '@/lib/db';
 import { users, phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import twilio from 'twilio';
+import { stripe } from '@/lib/stripe';
+import { sendWelcomeEmail } from '@/lib/email';
 
 function extractAreaCode(phone: string): number | null {
   const digits = phone.replace(/\D/g, '');
@@ -120,18 +122,60 @@ export async function POST(request: NextRequest) {
     });
 
     // Provision Twilio phone number; failures are non-fatal
+    let twilioNumber = '';
     try {
       await provisionTwilioNumber(userId, phone || null);
+      // Fetch the provisioned number
+      const provisioned = await getDb()
+        .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber })
+        .from(phoneNumbers)
+        .where(eq(phoneNumbers.userId, userId))
+        .limit(1);
+      twilioNumber = provisioned[0]?.twilioPhoneNumber || '';
     } catch (twilioError) {
       console.error('Twilio provisioning failed — account created, flagged for manual assignment:', twilioError);
     }
 
+    // Send welcome email (non-fatal)
+    try {
+      await sendWelcomeEmail(email, name, businessName || '', tier, twilioNumber);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+    }
+
     const token = generateToken({ userId, email, tier });
+
+    // Create Stripe checkout session so user goes straight to payment (non-fatal)
+    let checkoutUrl: string | null = null;
+    const priceIdMap: Record<string, string | undefined> = {
+      starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+      pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+    };
+    const priceId = priceIdMap[tier];
+    if (priceId) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+        const session = await stripe.checkout.sessions.create({
+          mode: 'subscription',
+          payment_method_types: ['card'],
+          line_items: [{ price: priceId, quantity: 1 }],
+          subscription_data: { trial_period_days: 7 },
+          success_url: `${appUrl}/dashboard?success=true`,
+          cancel_url: `${appUrl}/subscribe`,
+          customer_email: email,
+          metadata: { userId, plan: tier },
+        });
+        checkoutUrl = session.url;
+      } catch (stripeError) {
+        console.error('Stripe checkout session creation failed during signup:', stripeError);
+      }
+    }
 
     const response = NextResponse.json(
       {
         success: true,
         user: { id: userId, email, name, businessName: businessName || null, tier, trialEndsAt },
+        checkoutUrl,
       },
       { status: 201 }
     );

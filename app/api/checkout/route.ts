@@ -1,76 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { verifyToken } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/lib/stripe';
+import { verifyToken } from '@/lib/auth';
+import { getDb } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+const PRICE_IDS: Record<string, string | undefined> = {
+  starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+  pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { tier } = await request.json();
+    const { plan } = await request.json();
 
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Missing or invalid authorization header' },
-        { status: 401 }
-      );
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const payload = verifyToken(token);
-
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Validate tier
-    if (!['basic', 'pro', 'elite'].includes(tier)) {
-      return NextResponse.json(
-        { error: 'Invalid tier' },
-        { status: 400 }
-      );
+    const validPlans = ['starter', 'pro', 'elite'];
+    if (!validPlans.includes(plan)) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // TODO:
-    // 1. Get or create Stripe customer
-    // 2. Create checkout session with appropriate price ID
-    // 3. Return session URL
+    const priceId = PRICE_IDS[plan];
+    if (!priceId) {
+      return NextResponse.json({ error: `No price configured for plan: ${plan}` }, { status: 400 });
+    }
 
-    const priceIds: Record<string, string> = {
-      basic: process.env.STRIPE_BASIC_PRICE_ID || '',
-      pro: process.env.STRIPE_PRO_PRICE_ID || '',
-      elite: process.env.STRIPE_ELITE_PRICE_ID || '',
-    };
+    const db = getDb();
+    const userRecord = await db
+      .select({ email: users.email, stripeCustomerId: users.stripeCustomerId })
+      .from(users)
+      .where(eq(users.id, payload.userId))
+      .limit(1);
+
+    if (userRecord.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceIds[tier],
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
-      customer_email: payload.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: 7,
+      },
+      success_url: `${appUrl}/dashboard?success=true`,
+      cancel_url: `${appUrl}/subscribe`,
+      customer_email: userRecord[0].stripeCustomerId ? undefined : userRecord[0].email,
+      customer: userRecord[0].stripeCustomerId || undefined,
+      metadata: { userId: payload.userId, plan },
     });
 
-    return NextResponse.json({
-      sessionId: session.id,
-      url: session.url,
-    });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Checkout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
