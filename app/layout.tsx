@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: 'LeadCapture Pro - Never Miss Another Lead',
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body>
         {children}
         <PWAInstallPrompt />
+        <Analytics />
       </body>
     </html>
   )
