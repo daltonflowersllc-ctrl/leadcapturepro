@@ -1,6 +1,8 @@
 import Groq from 'groq-sdk';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+function getGroqClient() {
+  return new Groq({ apiKey: process.env.GROQ_API_KEY || 'placeholder' });
+}
 
 export async function scoreLead(
   serviceType: string,
@@ -9,7 +11,7 @@ export async function scoreLead(
   description: string
 ): Promise<{ score: 'hot' | 'warm' | 'cold'; emoji: '🔴' | '🟡' | '🟢'; reason: string; confidence: number }> {
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama3-8b-8192',
       messages: [
         {
@@ -40,7 +42,7 @@ export async function generateSmartSMS(
     if (hourOfDay >= 12 && hourOfDay < 17) timeOfDay = 'afternoon';
     else if (hourOfDay >= 17) timeOfDay = 'evening';
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama3-8b-8192',
       messages: [
         {
@@ -74,7 +76,7 @@ export async function generateOwnerSMS(
   leadEmoji: string
 ): Promise<string> {
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama3-8b-8192',
       messages: [
         {
@@ -104,7 +106,7 @@ export async function transcribeVoicemail(audioUrl: string): Promise<string> {
     const arrayBuffer = await response.arrayBuffer();
     const file = new File([arrayBuffer], 'voicemail.mp3', { type: 'audio/mpeg' });
 
-    const transcription = await groq.audio.transcriptions.create({
+    const transcription = await getGroqClient().audio.transcriptions.create({
       file,
       model: 'whisper-large-v3',
     });
@@ -122,7 +124,7 @@ export async function generateCallScripts(
   description: string
 ): Promise<string[]> {
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama3-8b-8192',
       messages: [
         {
