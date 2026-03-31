@@ -1,0 +1,22 @@
+module.exports = {
+    // Obfuscation configuration for LeadCapturePro production builds
+    compact: true,
+    controlFlowFlattening: true,
+    deadCodeInjection: true,
+    debugProtection: true,
+    debugProtectionInterval: true,
+    disableConsoleOutput: true,
+    identifierNamesGenerator: 'hexadecimal',
+    log: false,
+    numbersToExpressions: true,
+    renameGlobals: false,
+    rotateStringArray: true,
+    selfDefending: true,
+    simple: false,
+    stringArray: true,
+    stringArrayEncoding: ['rc4'],
+    stringArrayThreshold: 0.75,
+    target: 'browser',
+    transformObjectKeys: true,
+    unicodeEscapeSequence: false,
+};
