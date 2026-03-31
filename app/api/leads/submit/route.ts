@@ -8,6 +8,7 @@ import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
 import { scoreLead, generateOwnerSMS } from '@/lib/ai';
+import { sendNewLeadEmail } from '@/lib/email';
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -97,12 +98,30 @@ export async function POST(request: NextRequest) {
       formData: storedFormData,
     });
 
-    // Fetch business owner info for SMS, webhook, and push notifications
+    // Fetch business owner info for SMS, email, webhook, and push notifications
     const userRecord = await getDb()
-      .select({ phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
+      .select({ email: users.email, phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+
+    if (userRecord.length > 0) {
+      const owner = userRecord[0];
+      // Send email notification as backup to SMS (non-fatal)
+      try {
+        await sendNewLeadEmail(owner.email, owner.businessName || owner.name || 'Your business', {
+          callerName,
+          callerPhone,
+          serviceNeeded: serviceType || null,
+          urgency: urgency || null,
+          notes: description || null,
+          aiScore: aiScore.score,
+          leadId,
+        });
+      } catch (emailError) {
+        console.error('Lead email notification failed:', emailError);
+      }
+    }
 
     if (userRecord.length > 0 && userRecord[0].phone) {
       const owner = userRecord[0];

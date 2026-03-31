@@ -3,6 +3,27 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+async function handlePlanClick(planName: string, planHref: string) {
+  const res = await fetch('/api/auth/me');
+  if (res.ok) {
+    // Logged in — go straight to Stripe checkout
+    const checkoutRes = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: planName.toLowerCase() }),
+    });
+    if (checkoutRes.ok) {
+      const { url } = await checkoutRes.json();
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+    }
+  }
+  // Not logged in — go to signup
+  window.location.href = planHref;
+}
+
 const plans = [
   {
     name: 'Starter',
@@ -77,6 +98,7 @@ const plans = [
 
 export default function SubscribePage() {
   const [annual, setAnnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   return (
     <div
@@ -217,12 +239,15 @@ export default function SubscribePage() {
                 </ul>
 
                 <button
-                  onClick={() => {
-                    window.location.href = plan.href;
+                  onClick={async () => {
+                    setLoadingPlan(plan.name);
+                    await handlePlanClick(plan.name, plan.href);
+                    setLoadingPlan(null);
                   }}
-                  className={`w-full py-3 rounded-xl font-semibold transition-colors ${plan.ctaStyle}`}
+                  disabled={loadingPlan === plan.name}
+                  className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-60 ${plan.ctaStyle}`}
                 >
-                  {plan.cta}
+                  {loadingPlan === plan.name ? 'Loading...' : plan.cta}
                 </button>
 
                 <p className="text-xs text-center text-slate-400 mt-3">

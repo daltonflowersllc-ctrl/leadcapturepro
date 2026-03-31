@@ -1,65 +1,93 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/lib/stripe';
+import { getDb } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
-
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+function planTierFromPriceId(priceId: string): string {
+  if (priceId === process.env.STRIPE_PRO_MONTHLY_PRICE_ID) return 'pro';
+  if (priceId === process.env.STRIPE_STARTER_MONTHLY_PRICE_ID) return 'starter';
+  return 'starter';
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature') || '';
 
-    // Verify webhook signature
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+      event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
     } catch (error) {
       console.error('Webhook signature verification failed:', error);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
-    console.log('Stripe webhook received:', event.type);
+    const db = getDb();
 
-    // Handle different event types
     switch (event.type) {
-      case 'customer.subscription.created':
-        // New subscription created
-        // TODO: Update user subscription status in database
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.metadata?.userId;
+        if (userId && session.customer && session.subscription) {
+          await db
+            .update(users)
+            .set({
+              subscriptionStatus: 'active',
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: session.subscription as string,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, userId));
+        }
         break;
+      }
 
-      case 'customer.subscription.updated':
-        // Subscription updated (tier changed, etc)
-        // TODO: Update user subscription in database
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        if (sub.customer) {
+          await db
+            .update(users)
+            .set({ subscriptionStatus: 'canceled', updatedAt: new Date() })
+            .where(eq(users.stripeCustomerId, sub.customer as string));
+        }
         break;
+      }
 
-      case 'customer.subscription.deleted':
-        // Subscription canceled
-        // TODO: Update user subscription status to 'canceled'
+      case 'customer.subscription.updated': {
+        const sub = event.data.object as Stripe.Subscription;
+        const priceId = sub.items.data[0]?.price?.id;
+        if (sub.customer && priceId) {
+          const tier = planTierFromPriceId(priceId);
+          await db
+            .update(users)
+            .set({ tier, updatedAt: new Date() })
+            .where(eq(users.stripeCustomerId, sub.customer as string));
+        }
         break;
+      }
 
-      case 'invoice.payment_succeeded':
-        // Payment successful
-        // TODO: Update billing cycle dates
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.customer) {
+          await db
+            .update(users)
+            .set({ subscriptionStatus: 'past_due', updatedAt: new Date() })
+            .where(eq(users.stripeCustomerId, invoice.customer as string));
+        }
         break;
-
-      case 'invoice.payment_failed':
-        // Payment failed
-        // TODO: Update subscription status to 'past_due'
-        break;
+      }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        break;
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Stripe webhook error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

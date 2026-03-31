@@ -65,7 +65,11 @@ function SignupForm() {
         return;
       }
 
-      router.push('/dashboard');
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        router.push('/dashboard');
+      }
     } catch {
       setError('An error occurred. Please try again.');
     } finally {
