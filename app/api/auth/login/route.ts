@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, comparePassword } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { getDb } from '@/lib/db/index';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -60,6 +60,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

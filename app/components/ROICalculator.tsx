@@ -65,24 +65,24 @@ export default function ROICalculator() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="p-6 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-800 border border-red-800/50 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="p-6 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-800 border border-red-800/50 text-center overflow-hidden">
               <div className="text-sm text-slate-400 mb-2">Monthly Lost Revenue</div>
-              <div className="text-3xl font-bold text-red-400">
+              <div className="text-2xl sm:text-3xl font-bold text-red-400 truncate">
                 ${monthlyLost.toLocaleString()}
               </div>
             </div>
-            <div className="p-6 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-800 border border-red-800/50 text-center">
+            <div className="p-6 rounded-xl bg-gradient-to-br from-red-900/40 to-slate-800 border border-red-800/50 text-center overflow-hidden">
               <div className="text-sm text-slate-400 mb-2">Annual Lost Revenue</div>
-              <div className="text-3xl font-bold text-red-400">
+              <div className="text-2xl sm:text-3xl font-bold text-red-400 truncate">
                 ${annualLost.toLocaleString()}
               </div>
             </div>
           </div>
 
-          <div className="p-6 rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-800 border border-blue-500/30 text-center mb-6">
+          <div className="p-6 rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-800 border border-blue-500/30 text-center mb-6 overflow-hidden">
             <div className="text-sm text-slate-400 mb-1">Your ROI with LeadCapture Pro</div>
-            <div className="text-4xl font-bold text-green-400 mb-1">
+            <div className="text-3xl sm:text-4xl font-bold text-green-400 mb-1 truncate">
               ${annualROI.toLocaleString()}
             </div>
             <div className="text-slate-400 text-sm">recovered per year after $149/mo cost</div>
