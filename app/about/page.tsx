@@ -8,7 +8,7 @@ export default function AboutPage() {
         <div className="text-center mb-20">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">Built for the People Who Build America</h1>
           <p className="text-slate-400 text-xl leading-relaxed">
-            We're on a mission to ensure no home service business ever loses a job to a missed call again.
+            We're on a mission to ensure no home service business in the USA ever loses a job to a missed call again.
           </p>
         </div>
 
@@ -16,7 +16,7 @@ export default function AboutPage() {
         <section className="mb-20 p-10 rounded-3xl bg-slate-900 border border-slate-800">
           <h2 className="text-2xl font-bold text-white mb-4">Our Mission</h2>
           <p className="text-slate-400 text-lg leading-relaxed">
-            At LeadCapture Pro, we believe that small businesses are the backbone of the economy. When a contractor misses a call, they aren't just missing a notification—they're missing a mortgage payment, a college fund, or the next step in growing their legacy. Our mission is to provide enterprise-grade AI technology to local contractors at a price they can actually afford.
+            At LeadCapture Pro, we believe that small businesses are the backbone of the American economy. When a contractor misses a call, they aren't just missing a notification—they're missing a mortgage payment, a college fund, or the next step in growing their legacy. Our mission is to provide enterprise-grade AI technology to local contractors nationwide at a price they can actually afford.
           </p>
         </section>
 
@@ -99,7 +99,7 @@ export default function AboutPage() {
             </a>
           </div>
           <p className="mt-8 text-blue-200 text-xs">
-            LeadCapture Pro is operated by a US-based company. All data stored securely in the United States.
+            LeadCapture Pro is operated by a Virginia-based company. All data stored securely in the United States.
           </p>
         </section>
       </div>
