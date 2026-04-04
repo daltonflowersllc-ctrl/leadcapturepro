@@ -1,7 +1,7 @@
 const RESEND_API_URL = 'https://api.resend.com/emails';
 const FROM = 'LeadCapture Pro <support@leadcapturepro.app>';
 
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error('RESEND_API_KEY not set — skipping email');
