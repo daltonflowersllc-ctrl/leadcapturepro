@@ -14,6 +14,9 @@ export const users = pgTable('users', {
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
   subscriptionStatus: varchar('subscription_status', { length: 50 }).default('trial'), // trial, active, canceled, past_due
   trialEndsAt: timestamp('trial_ends_at'),
+  smsUsedThisMonth: integer('sms_used_this_month').default(0),
+  smsResetDate: timestamp('sms_reset_date'),
+  leadsThisMonth: integer('leads_this_month').default(0),
   billingCycleStart: timestamp('billing_cycle_start'),
   billingCycleEnd: timestamp('billing_cycle_end'),
   webhookUrl: text('webhook_url'),

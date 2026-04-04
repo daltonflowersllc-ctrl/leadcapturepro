@@ -71,6 +71,40 @@ export async function sendWelcomeEmail(
   await sendEmail(to, subject, html);
 }
 
+export async function sendPaymentFailedEmail(to: string): Promise<void> {
+  const subject = '⚠️ Payment Failed — Your LeadCapture Pro account is at risk';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #e2e8f0; padding: 40px 32px; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="color: #ffffff; margin: 0 0 8px;">Payment Failed</h1>
+        <p style="color: #ef4444; margin: 0; font-weight: bold;">Your payment method failed. Please update your card to avoid losing access.</p>
+      </div>
+      <p style="color: #94a3b8; line-height: 1.6;">Your recent subscription payment failed. You have 7 days to update your payment information before your account is automatically suspended.</p>
+      <div style="text-align: center; margin-top: 32px;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://leadcapturepro.app'}/dashboard" style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700;">Update Payment →</a>
+      </div>
+    </div>
+  `;
+  await sendEmail(to, subject, html);
+}
+
+export async function sendAccountSuspendedEmail(to: string): Promise<void> {
+  const subject = '❌ Your LeadCapture Pro account has been suspended';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #e2e8f0; padding: 40px 32px; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="color: #ffffff; margin: 0 0 8px;">Account Suspended</h1>
+        <p style="color: #ef4444; margin: 0; font-weight: bold;">Your subscription was canceled and your account is now suspended.</p>
+      </div>
+      <p style="color: #94a3b8; line-height: 1.6;">Your missed call lead capture service has been deactivated. To reactivate your account and resume capturing leads, please click the button below.</p>
+      <div style="text-align: center; margin-top: 32px;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://leadcapturepro.app'}/subscribe" style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700;">Reactivate Account →</a>
+      </div>
+    </div>
+  `;
+  await sendEmail(to, subject, html);
+}
+
 export async function sendNewLeadEmail(
   to: string,
   businessName: string,

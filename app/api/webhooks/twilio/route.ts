@@ -7,6 +7,8 @@ import { calls, phoneNumbers, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { generateId, generateToken } from '@/lib/auth';
 import { generateSmartSMS, transcribeVoicemail } from '@/lib/ai';
+import { checkSmsLimit, incrementSmsCount, Tier } from '@/lib/limits';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,27 +90,60 @@ export async function POST(request: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
       const formLink = `${appUrl}/lead?userId=${userId}&callId=${callId}&token=${formToken}`;
 
-      // Generate AI-powered SMS for the caller
-      const hourOfDay = new Date().getHours();
-      const rawSms = await generateSmartSMS(businessName, from, hourOfDay);
-      const smsBody = rawSms.replace('[FORM_LINK]', formLink);
+      // Check SMS limit
+      const { allowed, percentage } = await checkSmsLimit(userId, owner.tier as Tier);
 
-      // Send SMS to caller
-      const twilioClient = twilio(
-        process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN
-      );
-      await twilioClient.messages.create({
-        body: smsBody,
-        from: to,
-        to: from,
-      });
+      if (!allowed) {
+        console.warn(`SMS limit reached for user ${userId}`);
+        await getDb()
+          .update(calls)
+          .set({ 
+            smsNotificationSent: false,
+            notes: 'SMS notification not sent: Monthly limit reached.'
+          })
+          .where(eq(calls.id, callId));
+        
+        // Send notification saying limit reached
+        if (owner.email) {
+          await sendEmail(
+            owner.email,
+            '🚨 SMS Limit Reached — Action Required',
+            `<p>Hi ${owner.name},</p><p>You have reached 100% of your monthly SMS limit. We were unable to send an automated response to a missed call from ${from}.</p><p>Please <a href="${process.env.NEXT_PUBLIC_APP_URL}/subscribe">upgrade your plan</a> to continue providing instant responses to your customers.</p>`
+          );
+        }
+      } else {
+        // Generate AI-powered SMS for the caller
+        const hourOfDay = new Date().getHours();
+        const rawSms = await generateSmartSMS(businessName, from, hourOfDay);
+        const smsBody = rawSms.replace('[FORM_LINK]', formLink);
 
-      // Mark SMS as sent
-      await getDb()
-        .update(calls)
-        .set({ smsNotificationSent: true })
-        .where(eq(calls.id, callId));
+        // Send SMS to caller
+        const twilioClient = twilio(
+          process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+        await twilioClient.messages.create({
+          body: smsBody,
+          from: to,
+          to: from,
+        });
+
+        // Increment count and mark as sent
+        await incrementSmsCount(userId);
+        await getDb()
+          .update(calls)
+          .set({ smsNotificationSent: true })
+          .where(eq(calls.id, callId));
+
+        // Send warning if over 80%
+        if (percentage >= 80 && owner.email) {
+          await sendEmail(
+            owner.email,
+            '⚠️ SMS Limit Warning — 80% Used',
+            `<p>Hi ${owner.name},</p><p>You have used ${Math.round(percentage)}% of your monthly SMS limit. To avoid any service interruption, consider upgrading your plan.</p><p><a href="${process.env.NEXT_PUBLIC_APP_URL}/subscribe">Upgrade to Pro →</a></p>`
+          );
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

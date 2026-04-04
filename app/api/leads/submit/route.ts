@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
 import { scoreLead, generateOwnerSMS } from '@/lib/ai';
 import { sendNewLeadEmail } from '@/lib/email';
+import { checkAiAccess, checkZapierAccess, Tier } from '@/lib/limits';
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -70,13 +71,39 @@ export async function POST(request: NextRequest) {
     if (photo) storedFormData.photoName = photo.name;
     if (voicemailTranscription) storedFormData.transcription = voicemailTranscription;
 
-    // Score the lead with AI
-    const aiScore = await scoreLead(
-      serviceType || '',
-      urgency || '',
-      budget || '',
-      description || ''
-    );
+    // Fetch business owner info early for tier check
+    const [userRecord] = await getDb()
+      .select({ email: users.email, phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!userRecord) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const owner = userRecord;
+    const hasAiAccess = checkAiAccess(owner.tier as Tier);
+
+    // Score the lead with AI if allowed
+    let aiScore = { score: 'warm', emoji: '☀️', reason: 'Basic lead scoring', confidence: 1 };
+    if (hasAiAccess) {
+      aiScore = await scoreLead(
+        serviceType || '',
+        urgency || '',
+        budget || '',
+        description || ''
+      );
+    } else {
+      // Basic scoring for starter tier
+      aiScore = { 
+        score: urgency === 'high' ? 'hot' : 'warm', 
+        emoji: urgency === 'high' ? '🔥' : '☀️', 
+        reason: 'Basic lead scoring (Upgrade to Pro for AI scoring)', 
+        confidence: 1 
+      };
+    }
+
     storedFormData.aiScore = aiScore.score;
     storedFormData.aiEmoji = aiScore.emoji;
     storedFormData.aiReason = aiScore.reason;
@@ -98,49 +125,44 @@ export async function POST(request: NextRequest) {
       formData: storedFormData,
     });
 
-    // Fetch business owner info for SMS, email, webhook, and push notifications
-    const userRecord = await getDb()
-      .select({ email: users.email, phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (userRecord.length > 0) {
-      const owner = userRecord[0];
-      // Send email notification as backup to SMS (non-fatal)
-      try {
-        await sendNewLeadEmail(owner.email, owner.businessName || owner.name || 'Your business', {
-          callerName,
-          callerPhone,
-          serviceNeeded: serviceType || null,
-          urgency: urgency || null,
-          notes: description || null,
-          aiScore: aiScore.score,
-          leadId,
-        });
-      } catch (emailError) {
-        console.error('Lead email notification failed:', emailError);
-      }
-    }
-
-    if (userRecord.length > 0 && userRecord[0].phone) {
-      const owner = userRecord[0];
-      const businessLabel = owner.businessName || owner.name || 'Your business';
-
-      // Generate AI owner SMS
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-      const rawOwnerSms = await generateOwnerSMS(
-        businessLabel,
+    // Send email notification as backup to SMS (non-fatal)
+    try {
+      await sendNewLeadEmail(owner.email, owner.businessName || owner.name || 'Your business', {
         callerName,
         callerPhone,
-        serviceType || '',
-        urgency || '',
-        budget || '',
-        description || '',
-        aiScore.score,
-        aiScore.emoji
-      );
-      const smsBody = rawOwnerSms.replace('[APP_URL]', appUrl);
+        serviceNeeded: serviceType || null,
+        urgency: urgency || null,
+        notes: description || null,
+        aiScore: aiScore.score,
+        leadId,
+      });
+    } catch (emailError) {
+      console.error('Lead email notification failed:', emailError);
+    }
+
+    if (owner.phone) {
+      const businessLabel = owner.businessName || owner.name || 'Your business';
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      
+      let smsBody = '';
+      if (hasAiAccess) {
+        // Generate AI owner SMS
+        const rawOwnerSms = await generateOwnerSMS(
+          businessLabel,
+          callerName,
+          callerPhone,
+          serviceType || '',
+          urgency || '',
+          budget || '',
+          description || '',
+          aiScore.score,
+          aiScore.emoji
+        );
+        smsBody = rawOwnerSms.replace('[APP_URL]', appUrl);
+      } else {
+        // Simple template SMS for starter tier
+        smsBody = `🔔 New Lead: ${callerName} needs ${serviceType || 'service'}. ${aiScore.emoji} Score: ${aiScore.score}. View: ${appUrl}/dashboard`;
+      }
 
       const twilioClient = twilio(
         process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID,
@@ -153,10 +175,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Fire Zapier webhook if user is Pro or Elite and has a webhook URL set
-    if (userRecord.length > 0) {
-      const owner = userRecord[0];
-      if ((owner.tier === 'pro' || owner.tier === 'elite') && owner.webhookUrl) {
+    // Fire Zapier webhook if user has access and a webhook URL set
+    const hasZapierAccess = checkZapierAccess(owner.tier as Tier);
+    if (hasZapierAccess && owner.webhookUrl) {
         const webhookPayload = {
           leadId,
           callerName,
