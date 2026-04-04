@@ -178,40 +178,39 @@ export async function POST(request: NextRequest) {
     // Fire Zapier webhook if user has access and a webhook URL set
     const hasZapierAccess = checkZapierAccess(owner.tier as Tier);
     if (hasZapierAccess && owner.webhookUrl) {
-        const webhookPayload = {
-          leadId,
-          callerName,
-          callerPhone,
-          callerEmail: callerEmail || null,
-          serviceType: serviceType || null,
-          urgency: urgency || null,
-          budget: budget || null,
-          description: description || null,
-          callbackTime: callbackTime || null,
-          photoUrl: photo ? storedFormData.photoName : null,
-          businessName: owner.businessName || owner.name || null,
-          aiScore: aiScore.score,
-          aiEmoji: aiScore.emoji,
-          aiReason: aiScore.reason,
-          receivedAt: new Date().toISOString(),
-        };
-        try {
-          await fetch(owner.webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(webhookPayload),
-          });
-        } catch (webhookError) {
-          console.error('Webhook delivery error:', webhookError);
-          // Non-fatal — lead is saved even if webhook fails
-        }
+      const webhookPayload = {
+        leadId,
+        callerName,
+        callerPhone,
+        callerEmail: callerEmail || null,
+        serviceType: serviceType || null,
+        urgency: urgency || null,
+        budget: budget || null,
+        description: description || null,
+        callbackTime: callbackTime || null,
+        photoUrl: photo ? storedFormData.photoName : null,
+        businessName: owner.businessName || owner.name || null,
+        aiScore: aiScore.score,
+        aiEmoji: aiScore.emoji,
+        aiReason: aiScore.reason,
+        receivedAt: new Date().toISOString(),
+      };
+      try {
+        await fetch(owner.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(webhookPayload),
+        });
+      } catch (webhookError) {
+        console.error('Webhook delivery error:', webhookError);
+        // Non-fatal — lead is saved even if webhook fails
       }
     }
 
     // Send web push notification to business owner if they have a subscription
-    if (userRecord.length > 0 && userRecord[0].pushSubscription && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    if (userRecord.pushSubscription && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       try {
-        const subscription = JSON.parse(userRecord[0].pushSubscription);
+        const subscription = JSON.parse(userRecord.pushSubscription);
         const urgencyLabel = urgency ? ` (${urgency} urgency)` : '';
         const serviceLabel = serviceType ? serviceType : 'a service';
         await webpush.sendNotification(
