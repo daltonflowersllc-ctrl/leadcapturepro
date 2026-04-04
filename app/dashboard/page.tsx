@@ -6,6 +6,8 @@ import { users, phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import DashboardClient from './DashboardClient';
 
+export const runtime = 'nodejs';
+
 export default async function DashboardPage() {
   const cookieStore = cookies();
   const token = cookieStore.get('auth-token')?.value;
