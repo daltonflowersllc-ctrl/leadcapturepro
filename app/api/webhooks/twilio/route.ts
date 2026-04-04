@@ -100,7 +100,6 @@ export async function POST(request: NextRequest) {
           .update(calls)
           .set({ 
             smsNotificationSent: false,
-            notes: 'SMS notification not sent: Monthly limit reached.'
           })
           .where(eq(calls.id, callId));
         
