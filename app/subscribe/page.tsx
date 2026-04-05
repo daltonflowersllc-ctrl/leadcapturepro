@@ -149,7 +149,7 @@ export default function SubscribePage() {
         <div className="max-w-3xl mx-auto">
           <h1 className="font-display text-5xl md:text-6xl text-white mb-4">Choose Your Plan</h1>
           <p className="text-slate-400 text-xl mb-10">
-            Start your 7-day free trial today. No commitment until day 8.
+            7-day free trial — credit card required. Billed automatically on day 8.
           </p>
 
           {/* Billing toggle */}

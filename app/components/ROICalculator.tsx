@@ -73,6 +73,7 @@ export default function ROICalculator() {
       <Link href="/subscribe" className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-4 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
         Start Free Trial
       </Link>
+      <p className="text-xs text-muted-foreground mt-1 text-center text-slate-500">Credit card required. Billed on day 8.</p>
     </div>
   );
 }

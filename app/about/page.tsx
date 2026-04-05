@@ -91,9 +91,12 @@ export default function AboutPage() {
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Capture Every Lead?</h2>
           <p className="text-blue-100 mb-8">Join the hundreds of contractors growing their business with LeadCapture Pro.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup" className="bg-white text-blue-600 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 transition-all">
-              Start Free Trial
-            </Link>
+            <div className="flex flex-col items-center">
+              <Link href="/signup" className="bg-white text-blue-600 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 transition-all">
+                Start Free Trial
+              </Link>
+              <p className="text-xs text-blue-200 mt-1">Credit card required. Billed on day 8.</p>
+            </div>
             <a href="mailto:support@leadcapturepro.app" className="text-white font-bold hover:underline">
               support@leadcapturepro.app
             </a>
