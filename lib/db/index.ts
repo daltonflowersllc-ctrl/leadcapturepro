@@ -7,7 +7,10 @@ let db: ReturnType<typeof drizzle>;
 
 export function getDb() {
   if (!db) {
-    const client = postgres(process.env.DATABASE_URL!);
+    const client = postgres(process.env.DATABASE_URL!, {
+      max: 1,       // required for serverless
+      ssl: 'require',
+    });
     db = drizzle(client, { schema });
   }
   return db;
