@@ -64,7 +64,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="flex flex-wrap justify-center items-center gap-8 text-slate-500 text-sm font-medium">
-            <span className="flex items-center gap-2">✅ No credit card required</span>
+            <span className="flex items-center gap-2">✅ Credit card required</span>
             <span className="flex items-center gap-2">✅ Cancel before day 8</span>
             <span className="flex items-center gap-2">✅ 256-bit SSL Secure</span>
           </div>
@@ -223,6 +223,7 @@ export default function LandingPage() {
               <Link href="/signup?plan=starter" className="w-full bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-xl font-bold transition text-center">
                 Start Free Trial
               </Link>
+              <p className="text-xs text-muted-foreground mt-1 text-center text-slate-500">Credit card required. Billed on day 8.</p>
             </div>
 
             {/* Pro */}
@@ -241,6 +242,7 @@ export default function LandingPage() {
               <Link href="/signup?plan=pro" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold transition text-center">
                 Start Free Trial
               </Link>
+              <p className="text-xs text-muted-foreground mt-1 text-center text-slate-500">Credit card required. Billed on day 8.</p>
             </div>
 
             {/* Elite */}

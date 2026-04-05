@@ -194,7 +194,7 @@ function SignupForm() {
           </div>
 
           <p className="text-center text-xs text-slate-500 mt-4">
-            7-day free trial • Cancel anytime • 256-bit SSL
+            7-day free trial — credit card required. Billed on day 8 • 256-bit SSL
           </p>
 
           <div className="mt-6 text-center">
