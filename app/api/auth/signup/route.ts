@@ -72,7 +72,7 @@ async function provisionTwilioNumber(userId: string, userPhone: string | null): 
 }
 
 export async function POST(request: NextRequest) {
-  console.log('DATABASE_URL prefix:', process.env.DATABASE_URL?.substring(0, 50))
+  console.log('DATABASE_URL prefix:', process.env.DATABASE_URL?.substring(0, 80))
   try {
     const { email, password, name, businessName, phone, plan } = await request.json();
 
