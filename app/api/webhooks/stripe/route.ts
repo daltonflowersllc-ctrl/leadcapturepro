@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
@@ -28,8 +28,6 @@ export async function POST(request: NextRequest) {
       console.error('Webhook signature verification failed:', error);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
-
-    const db = getDb();
 
     switch (event.type) {
       case 'checkout.session.completed': {

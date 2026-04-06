@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const phoneResult = await getDb()
+    const phoneResult = await db
       .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber, twilioSid: phoneNumbers.twilioSid })
       .from(phoneNumbers)
       .where(eq(phoneNumbers.userId, payload.userId))

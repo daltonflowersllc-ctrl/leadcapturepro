@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, comparePassword } from '@/lib/auth';
-import { getDb } from '@/lib/db/index';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -17,8 +17,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const db = getDb();
 
     const result = await db
       .select()

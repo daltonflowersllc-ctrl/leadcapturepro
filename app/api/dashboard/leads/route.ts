@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { leads } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth';
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const userLeads = await getDb()
+    const userLeads = await db
       .select()
       .from(leads)
       .where(eq(leads.userId, payload.userId))
