@@ -3,9 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, comparePassword } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,13 +16,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', email)
       .limit(1);
 
-    const user = result[0];
+    const user = users?.[0];
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
@@ -44,7 +42,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         tier: user.tier,
-        subscriptionStatus: user.subscriptionStatus,
+        subscriptionStatus: user.subscription_status,
       },
     });
 

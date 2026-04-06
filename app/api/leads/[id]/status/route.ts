@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { leads } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 
 export async function PATCH(
@@ -30,10 +28,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
     }
 
-    await db
-      .update(leads)
-      .set({ status, updatedAt: new Date() })
-      .where(and(eq(leads.id, params.id), eq(leads.userId, payload.userId)));
+    await supabaseAdmin
+      .from('leads')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+      .eq('user_id', payload.userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

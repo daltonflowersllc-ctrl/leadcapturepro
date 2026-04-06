@@ -3,9 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db } from '@/lib/db';
-import { calls, phoneNumbers, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { generateId, generateToken } from '@/lib/auth';
 import { generateSmartSMS, transcribeVoicemail } from '@/lib/ai';
 import { checkSmsLimit, incrementSmsCount, Tier } from '@/lib/limits';
@@ -26,61 +24,54 @@ export async function POST(request: NextRequest) {
 
     if ((callStatus === 'no-answer' || callStatus === 'busy' || callStatus === 'failed') && from && to) {
       // Look up the phone number record and user
-      const phoneRecord = await db
-        .select({
-          id: phoneNumbers.id,
-          userId: phoneNumbers.userId,
-        })
-        .from(phoneNumbers)
-        .where(eq(phoneNumbers.twilioPhoneNumber, to))
+      const { data: phoneRows } = await supabaseAdmin
+        .from('phone_numbers')
+        .select('id, user_id')
+        .eq('twilio_phone_number', to)
         .limit(1);
 
-      if (phoneRecord.length === 0) {
+      if (!phoneRows || phoneRows.length === 0) {
         return NextResponse.json({ success: true });
       }
 
-      const { id: phoneNumberId, userId } = phoneRecord[0];
+      const { id: phoneNumberId, user_id: userId } = phoneRows[0];
 
-      const userRecord = await db
-        .select({
-          businessName: users.businessName,
-          name: users.name,
-          phone: users.phone,
-          email: users.email,
-          tier: users.tier,
-        })
-        .from(users)
-        .where(eq(users.id, userId))
+      const { data: userRows } = await supabaseAdmin
+        .from('users')
+        .select('business_name, name, phone, email, tier')
+        .eq('id', userId)
         .limit(1);
 
-      if (userRecord.length === 0) {
+      if (!userRows || userRows.length === 0) {
         return NextResponse.json({ success: true });
       }
 
-      const owner = userRecord[0];
-      const businessName = owner.businessName || owner.name || 'us';
+      const owner = userRows[0];
+      const businessName = owner.business_name || owner.name || 'us';
 
       // Create call record
       const callId = generateId();
-      await db.insert(calls).values({
-        id: callId,
-        userId,
-        phoneNumberId,
-        callerNumber: from,
-        missedCall: true,
-        smsNotificationSent: false,
-        leadCaptured: false,
-        recordingUrl: recordingUrl || null,
-      });
+      await supabaseAdmin
+        .from('calls')
+        .insert({
+          id: callId,
+          user_id: userId,
+          phone_number_id: phoneNumberId,
+          caller_number: from,
+          missed_call: true,
+          sms_notification_sent: false,
+          lead_captured: false,
+          recording_url: recordingUrl || null,
+        });
 
       // Transcribe voicemail if recording exists
       if (recordingUrl) {
         try {
           const transcription = await transcribeVoicemail(recordingUrl);
-          await db
-            .update(calls)
-            .set({ transcriptText: transcription })
-            .where(eq(calls.id, callId));
+          await supabaseAdmin
+            .from('calls')
+            .update({ transcript_text: transcription })
+            .eq('id', callId);
         } catch (transcribeError) {
           console.error('Voicemail transcription error:', transcribeError);
         }
@@ -96,13 +87,11 @@ export async function POST(request: NextRequest) {
 
       if (!allowed) {
         console.warn(`SMS limit reached for user ${userId}`);
-        await db
-          .update(calls)
-          .set({ 
-            smsNotificationSent: false,
-          })
-          .where(eq(calls.id, callId));
-        
+        await supabaseAdmin
+          .from('calls')
+          .update({ sms_notification_sent: false })
+          .eq('id', callId);
+
         // Send notification saying limit reached
         if (owner.email) {
           await sendEmail(
@@ -130,10 +119,10 @@ export async function POST(request: NextRequest) {
 
         // Increment count and mark as sent
         await incrementSmsCount(userId);
-        await db
-          .update(calls)
-          .set({ smsNotificationSent: true })
-          .where(eq(calls.id, callId));
+        await supabaseAdmin
+          .from('calls')
+          .update({ sms_notification_sent: true })
+          .eq('id', callId);
 
         // Send warning if over 80%
         if (percentage >= 80 && owner.email) {

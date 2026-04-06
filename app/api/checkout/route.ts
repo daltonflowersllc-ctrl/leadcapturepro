@@ -3,9 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { verifyToken } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const PRICE_IDS: Record<string, string | undefined> = {
   starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
@@ -36,13 +34,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `No price configured for plan: ${plan}` }, { status: 400 });
     }
 
-    const userRecord = await db
-      .select({ email: users.email, stripeCustomerId: users.stripeCustomerId })
-      .from(users)
-      .where(eq(users.id, payload.userId))
-      .limit(1);
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('email, stripe_customer_id')
+      .eq('id', payload.userId)
+      .limit(1)
+      .single();
 
-    if (userRecord.length === 0) {
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -58,8 +57,8 @@ export async function POST(request: NextRequest) {
       },
       success_url: `${appUrl}/dashboard?success=true`,
       cancel_url: `${appUrl}/subscribe`,
-      customer_email: userRecord[0].stripeCustomerId ? undefined : userRecord[0].email,
-      customer: userRecord[0].stripeCustomerId || undefined,
+      customer_email: user.stripe_customer_id ? undefined : user.email,
+      customer: user.stripe_customer_id || undefined,
       metadata: { userId: payload.userId, plan },
     });
 

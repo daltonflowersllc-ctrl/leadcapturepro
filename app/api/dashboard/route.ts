@@ -2,9 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { phoneNumbers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,14 +24,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const phoneResult = await db
-      .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber, twilioSid: phoneNumbers.twilioSid })
-      .from(phoneNumbers)
-      .where(eq(phoneNumbers.userId, payload.userId))
+    const { data: phoneRows } = await supabaseAdmin
+      .from('phone_numbers')
+      .select('twilio_phone_number, twilio_sid')
+      .eq('user_id', payload.userId)
       .limit(1);
 
-    const assignedPhone = phoneResult[0]?.twilioPhoneNumber ?? null;
-    const assignedPhoneSid = phoneResult[0]?.twilioSid ?? null;
+    const assignedPhone = phoneRows?.[0]?.twilio_phone_number ?? null;
+    const assignedPhoneSid = phoneRows?.[0]?.twilio_sid ?? null;
 
     const dashboardData = {
       user: {

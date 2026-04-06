@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { leads } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 import { generateCallScripts } from '@/lib/ai';
 
@@ -22,28 +20,23 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const leadRecord = await db
-      .select({
-        callerName: leads.callerName,
-        serviceNeeded: leads.serviceNeeded,
-        urgency: leads.urgency,
-        notes: leads.notes,
-        formData: leads.formData,
-      })
-      .from(leads)
-      .where(and(eq(leads.id, params.id), eq(leads.userId, payload.userId)))
-      .limit(1);
+    const { data: lead } = await supabaseAdmin
+      .from('leads')
+      .select('caller_name, service_needed, urgency, notes, form_data')
+      .eq('id', params.id)
+      .eq('user_id', payload.userId)
+      .limit(1)
+      .single();
 
-    if (leadRecord.length === 0) {
+    if (!lead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const lead = leadRecord[0];
-    const formData = (lead.formData || {}) as Record<string, string>;
+    const formData = (lead.form_data || {}) as Record<string, string>;
 
     const scripts = await generateCallScripts(
-      lead.callerName,
-      lead.serviceNeeded || formData.serviceType || '',
+      lead.caller_name,
+      lead.service_needed || formData.serviceType || '',
       lead.urgency || '',
       formData.budget || '',
       formData.description || lead.notes || ''

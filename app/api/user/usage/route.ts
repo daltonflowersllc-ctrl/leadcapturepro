@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 import { checkSmsLimit, Tier } from '@/lib/limits';
 
@@ -14,7 +12,12 @@ export async function GET(request: NextRequest) {
   const payload = verifyToken(token);
   if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-  const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('id, tier, subscription_status')
+    .eq('id', payload.userId)
+    .limit(1)
+    .single();
 
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -25,6 +28,6 @@ export async function GET(request: NextRequest) {
     smsLimit: usage.limit,
     percentage: usage.percentage,
     tier: user.tier,
-    subscriptionStatus: user.subscriptionStatus,
+    subscriptionStatus: user.subscription_status,
   });
 }

@@ -2,9 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,15 +12,20 @@ export async function POST(request: NextRequest) {
   const payload = verifyToken(token);
   if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-  const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('stripe_customer_id')
+    .eq('id', payload.userId)
+    .limit(1)
+    .single();
 
-  if (!user || !user.stripeCustomerId) {
+  if (!user || !user.stripe_customer_id) {
     return NextResponse.json({ error: 'Stripe customer not found' }, { status: 404 });
   }
 
   try {
     const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: user.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://leadcapturepro.app'}/dashboard`,
     });
 

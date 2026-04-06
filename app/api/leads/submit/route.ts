@@ -4,9 +4,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import webpush from 'web-push';
-import { db } from '@/lib/db';
-import { leads, users, calls } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken, generateId } from '@/lib/auth';
 import { scoreLead, generateOwnerSMS } from '@/lib/ai';
 import { sendNewLeadEmail } from '@/lib/email';
@@ -52,14 +50,14 @@ export async function POST(request: NextRequest) {
     let callerPhone = '';
     let voicemailTranscription: string | null = null;
     if (callId) {
-      const callRecord = await db
-        .select({ callerNumber: calls.callerNumber, transcriptText: calls.transcriptText })
-        .from(calls)
-        .where(eq(calls.id, callId))
+      const { data: callRows } = await supabaseAdmin
+        .from('calls')
+        .select('caller_number, transcript_text')
+        .eq('id', callId)
         .limit(1);
-      if (callRecord.length > 0) {
-        callerPhone = callRecord[0].callerNumber;
-        voicemailTranscription = callRecord[0].transcriptText || null;
+      if (callRows && callRows.length > 0) {
+        callerPhone = callRows[0].caller_number;
+        voicemailTranscription = callRows[0].transcript_text || null;
       }
     }
 
@@ -73,17 +71,17 @@ export async function POST(request: NextRequest) {
     if (voicemailTranscription) storedFormData.transcription = voicemailTranscription;
 
     // Fetch business owner info early for tier check
-    const [userRecord] = await db
-      .select({ email: users.email, phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
-      .from(users)
-      .where(eq(users.id, userId))
+    const { data: ownerRows } = await supabaseAdmin
+      .from('users')
+      .select('email, phone, business_name, name, tier, webhook_url, push_subscription')
+      .eq('id', userId)
       .limit(1);
 
-    if (!userRecord) {
+    const owner = ownerRows?.[0];
+    if (!owner) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const owner = userRecord;
     const hasAiAccess = checkAiAccess(owner.tier as Tier);
 
     // Score the lead with AI if allowed
@@ -97,11 +95,11 @@ export async function POST(request: NextRequest) {
       );
     } else {
       // Basic scoring for starter tier
-      aiScore = { 
-        score: urgency === 'high' ? 'hot' : 'warm', 
-        emoji: urgency === 'high' ? '🔥' : '☀️', 
-        reason: 'Basic lead scoring (Upgrade to Pro for AI scoring)', 
-        confidence: 1 
+      aiScore = {
+        score: urgency === 'high' ? 'hot' : 'warm',
+        emoji: urgency === 'high' ? '🔥' : '☀️',
+        reason: 'Basic lead scoring (Upgrade to Pro for AI scoring)',
+        confidence: 1
       };
     }
 
@@ -112,23 +110,25 @@ export async function POST(request: NextRequest) {
 
     // Save lead to database
     const leadId = generateId();
-    await db.insert(leads).values({
-      id: leadId,
-      userId,
-      callId: callId || null,
-      callerName,
-      callerPhone,
-      callerEmail: callerEmail || null,
-      serviceNeeded: serviceType || null,
-      urgency: urgency || null,
-      status: 'new',
-      notes: description || null,
-      formData: storedFormData,
-    });
+    await supabaseAdmin
+      .from('leads')
+      .insert({
+        id: leadId,
+        user_id: userId,
+        call_id: callId || null,
+        caller_name: callerName,
+        caller_phone: callerPhone,
+        caller_email: callerEmail || null,
+        service_needed: serviceType || null,
+        urgency: urgency || null,
+        status: 'new',
+        notes: description || null,
+        form_data: storedFormData,
+      });
 
     // Send email notification as backup to SMS (non-fatal)
     try {
-      await sendNewLeadEmail(owner.email, owner.businessName || owner.name || 'Your business', {
+      await sendNewLeadEmail(owner.email, owner.business_name || owner.name || 'Your business', {
         callerName,
         callerPhone,
         serviceNeeded: serviceType || null,
@@ -142,9 +142,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (owner.phone) {
-      const businessLabel = owner.businessName || owner.name || 'Your business';
+      const businessLabel = owner.business_name || owner.name || 'Your business';
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-      
+
       let smsBody = '';
       if (hasAiAccess) {
         // Generate AI owner SMS
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Fire Zapier webhook if user has access and a webhook URL set
     const hasZapierAccess = checkZapierAccess(owner.tier as Tier);
-    if (hasZapierAccess && owner.webhookUrl) {
+    if (hasZapierAccess && owner.webhook_url) {
       const webhookPayload = {
         leadId,
         callerName,
@@ -190,14 +190,14 @@ export async function POST(request: NextRequest) {
         description: description || null,
         callbackTime: callbackTime || null,
         photoUrl: photo ? storedFormData.photoName : null,
-        businessName: owner.businessName || owner.name || null,
+        businessName: owner.business_name || owner.name || null,
         aiScore: aiScore.score,
         aiEmoji: aiScore.emoji,
         aiReason: aiScore.reason,
         receivedAt: new Date().toISOString(),
       };
       try {
-        await fetch(owner.webhookUrl, {
+        await fetch(owner.webhook_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(webhookPayload),
@@ -209,9 +209,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Send web push notification to business owner if they have a subscription
-    if (userRecord.pushSubscription && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    if (owner.push_subscription && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       try {
-        const subscription = JSON.parse(userRecord.pushSubscription);
+        const subscription = JSON.parse(owner.push_subscription);
         const urgencyLabel = urgency ? ` (${urgency} urgency)` : '';
         const serviceLabel = serviceType ? serviceType : 'a service';
         await webpush.sendNotification(

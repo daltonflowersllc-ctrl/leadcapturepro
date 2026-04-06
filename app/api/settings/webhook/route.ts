@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -18,18 +16,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Verify user is Pro or Elite tier
-    const userRecord = await db
-      .select({ tier: users.tier })
-      .from(users)
-      .where(eq(users.id, payload.userId))
-      .limit(1);
+    const { data: userRow } = await supabaseAdmin
+      .from('users')
+      .select('tier')
+      .eq('id', payload.userId)
+      .limit(1)
+      .single();
 
-    if (userRecord.length === 0) {
+    if (!userRow) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const tier = userRecord[0].tier;
+    const tier = userRow.tier;
     if (tier !== 'pro' && tier !== 'elite') {
       return NextResponse.json(
         { error: 'Zapier integration requires a Pro or Elite plan' },
@@ -42,10 +40,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 });
     }
 
-    await db
-      .update(users)
-      .set({ webhookUrl: webhookUrl || null, updatedAt: new Date() })
-      .where(eq(users.id, payload.userId));
+    await supabaseAdmin
+      .from('users')
+      .update({ webhook_url: webhookUrl || null, updated_at: new Date().toISOString() })
+      .eq('id', payload.userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

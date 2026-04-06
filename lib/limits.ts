@@ -1,6 +1,4 @@
-import { db } from './db';
-import { users } from './db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { supabaseAdmin } from './supabase-admin';
 
 export const TIER_LIMITS = {
   starter: { smsPerMonth: 100, phoneNumbers: 1, teamMembers: 1, aiFeatures: false, zapier: false },
@@ -11,27 +9,28 @@ export const TIER_LIMITS = {
 export type Tier = keyof typeof TIER_LIMITS;
 
 export async function checkSmsLimit(userId: string, tier: Tier) {
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('sms_used_this_month, sms_reset_date')
+    .eq('id', userId)
+    .limit(1)
+    .single();
 
   if (!user) {
     throw new Error('User not found');
   }
 
-  let smsUsed = user.smsUsedThisMonth || 0;
+  let smsUsed = user.sms_used_this_month || 0;
   const now = new Date();
-  const resetDate = user.smsResetDate ? new Date(user.smsResetDate) : null;
+  const resetDate = user.sms_reset_date ? new Date(user.sms_reset_date) : null;
 
   // Check if smsResetDate is in a past month
   if (!resetDate || resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
     smsUsed = 0;
-    await db
-      .update(users)
-      .set({ 
-        smsUsedThisMonth: 0, 
-        smsResetDate: now,
-        updatedAt: now
-      })
-      .where(eq(users.id, userId));
+    await supabaseAdmin
+      .from('users')
+      .update({ sms_used_this_month: 0, sms_reset_date: now.toISOString(), updated_at: now.toISOString() })
+      .eq('id', userId);
   }
 
   const limit = TIER_LIMITS[tier]?.smsPerMonth || TIER_LIMITS.starter.smsPerMonth;
@@ -46,13 +45,19 @@ export async function checkSmsLimit(userId: string, tier: Tier) {
 }
 
 export async function incrementSmsCount(userId: string) {
-  await db
-    .update(users)
-    .set({ 
-      smsUsedThisMonth: sql`${users.smsUsedThisMonth} + 1`,
-      updatedAt: new Date()
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('sms_used_this_month')
+    .eq('id', userId)
+    .single();
+
+  await supabaseAdmin
+    .from('users')
+    .update({
+      sms_used_this_month: (user?.sms_used_this_month || 0) + 1,
+      updated_at: new Date().toISOString(),
     })
-    .where(eq(users.id, userId));
+    .eq('id', userId);
 }
 
 export function checkAiAccess(tier: Tier) {

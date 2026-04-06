@@ -3,9 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
 import { sendPaymentFailedEmail, sendAccountSuspendedEmail } from '@/lib/email';
 
@@ -37,17 +35,17 @@ export async function POST(request: NextRequest) {
 
         if (customerEmail) {
           const tier = priceId ? planTierFromPriceId(priceId) : 'starter';
-          await db
-            .update(users)
-            .set({
-              subscriptionStatus: 'active',
-              stripeCustomerId: session.customer as string,
-              stripeSubscriptionId: session.subscription as string,
+          await supabaseAdmin
+            .from('users')
+            .update({
+              subscription_status: 'active',
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
               tier,
-              trialEndsAt: null,
-              updatedAt: new Date(),
+              trial_ends_at: null,
+              updated_at: new Date().toISOString(),
             })
-            .where(eq(users.email, customerEmail));
+            .eq('email', customerEmail);
         }
         break;
       }
@@ -55,12 +53,17 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.customer) {
-          const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, invoice.customer as string)).limit(1);
+          const { data: users } = await supabaseAdmin
+            .from('users')
+            .select('id, email')
+            .eq('stripe_customer_id', invoice.customer as string)
+            .limit(1);
+          const user = users?.[0];
           if (user) {
-            await db
-              .update(users)
-              .set({ subscriptionStatus: 'past_due', updatedAt: new Date() })
-              .where(eq(users.id, user.id));
+            await supabaseAdmin
+              .from('users')
+              .update({ subscription_status: 'past_due', updated_at: new Date().toISOString() })
+              .eq('id', user.id);
             await sendPaymentFailedEmail(user.email);
           }
         }
@@ -70,12 +73,17 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
         if (sub.customer) {
-          const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, sub.customer as string)).limit(1);
+          const { data: users } = await supabaseAdmin
+            .from('users')
+            .select('id, email')
+            .eq('stripe_customer_id', sub.customer as string)
+            .limit(1);
+          const user = users?.[0];
           if (user) {
-            await db
-              .update(users)
-              .set({ subscriptionStatus: 'canceled', tier: 'starter', updatedAt: new Date() })
-              .where(eq(users.id, user.id));
+            await supabaseAdmin
+              .from('users')
+              .update({ subscription_status: 'canceled', tier: 'starter', updated_at: new Date().toISOString() })
+              .eq('id', user.id);
             await sendAccountSuspendedEmail(user.email);
           }
         }
@@ -87,14 +95,14 @@ export async function POST(request: NextRequest) {
         const priceId = sub.items.data[0]?.price?.id;
         if (sub.customer && priceId) {
           const tier = planTierFromPriceId(priceId);
-          const updateData: any = { tier, updatedAt: new Date() };
+          const updateData: Record<string, unknown> = { tier, updated_at: new Date().toISOString() };
           if (sub.status === 'active') {
-            updateData.subscriptionStatus = 'active';
+            updateData.subscription_status = 'active';
           }
-          await db
-            .update(users)
-            .set(updateData)
-            .where(eq(users.stripeCustomerId, sub.customer as string));
+          await supabaseAdmin
+            .from('users')
+            .update(updateData)
+            .eq('stripe_customer_id', sub.customer as string);
         }
         break;
       }
@@ -102,10 +110,10 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.customer) {
-          await db
-            .update(users)
-            .set({ subscriptionStatus: 'active', updatedAt: new Date() })
-            .where(eq(users.stripeCustomerId, invoice.customer as string));
+          await supabaseAdmin
+            .from('users')
+            .update({ subscription_status: 'active', updated_at: new Date().toISOString() })
+            .eq('stripe_customer_id', invoice.customer as string);
         }
         break;
       }

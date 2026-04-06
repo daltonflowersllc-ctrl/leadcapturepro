@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { leads } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -22,13 +20,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const userLeads = await db
-      .select()
-      .from(leads)
-      .where(eq(leads.userId, payload.userId))
-      .orderBy(desc(leads.createdAt));
+    const { data: userLeads } = await supabaseAdmin
+      .from('leads')
+      .select('*')
+      .eq('user_id', payload.userId)
+      .order('created_at', { ascending: false });
 
-    return NextResponse.json({ leads: userLeads });
+    return NextResponse.json({ leads: userLeads ?? [] });
   } catch (error) {
     console.error('Dashboard leads error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

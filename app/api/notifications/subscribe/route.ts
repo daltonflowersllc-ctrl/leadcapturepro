@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -19,10 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    await db
-      .update(users)
-      .set({ pushSubscription: JSON.stringify(subscription) })
-      .where(eq(users.id, userId));
+    await supabaseAdmin
+      .from('users')
+      .update({ push_subscription: JSON.stringify(subscription) })
+      .eq('id', userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

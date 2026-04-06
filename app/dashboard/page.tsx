@@ -1,9 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { users, phoneNumbers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import DashboardClient from './DashboardClient';
 
 export const runtime = 'nodejs';
@@ -21,30 +19,32 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const result = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      tier: users.tier,
-      subscriptionStatus: users.subscriptionStatus,
-    })
-    .from(users)
-    .where(eq(users.id, payload.userId))
-    .limit(1);
+  const { data: userRow } = await supabaseAdmin
+    .from('users')
+    .select('id, email, name, tier, subscription_status')
+    .eq('id', payload.userId)
+    .limit(1)
+    .single();
 
-  const user = result[0];
-  if (!user) {
+  if (!userRow) {
     redirect('/login');
   }
 
-  const phoneResult = await db
-    .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber })
-    .from(phoneNumbers)
-    .where(eq(phoneNumbers.userId, payload.userId))
+  const user = {
+    id: userRow.id,
+    email: userRow.email,
+    name: userRow.name,
+    tier: userRow.tier,
+    subscriptionStatus: userRow.subscription_status,
+  };
+
+  const { data: phoneRows } = await supabaseAdmin
+    .from('phone_numbers')
+    .select('twilio_phone_number')
+    .eq('user_id', payload.userId)
     .limit(1);
 
-  const assignedPhone = phoneResult[0]?.twilioPhoneNumber ?? null;
+  const assignedPhone = phoneRows?.[0]?.twilio_phone_number ?? null;
 
   return <DashboardClient user={user} assignedPhone={assignedPhone} />;
 }
