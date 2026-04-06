@@ -2,12 +2,15 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, hashPassword } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { users, phoneNumbers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 import { stripe } from '@/lib/stripe';
 import { sendWelcomeEmail } from '@/lib/email';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 function extractAreaCode(phone: string): number | null {
   const digits = phone.replace(/\D/g, '');
@@ -62,17 +65,12 @@ async function provisionTwilioNumber(userId: string, userPhone: string | null): 
     statusCallbackMethod: 'POST',
   });
 
-  await db.insert(phoneNumbers).values({
-    id: crypto.randomUUID(),
-    userId,
-    twilioPhoneNumber: purchased.phoneNumber,
-    twilioSid: purchased.sid,
-    isActive: true,
-  });
+  await supabaseAdmin
+    .from('phone_numbers')
+    .insert({ id: crypto.randomUUID(), user_id: userId, twilio_phone_number: purchased.phoneNumber, twilio_sid: purchased.sid, is_active: true });
 }
 
 export async function POST(request: NextRequest) {
-  console.log('DATABASE_URL prefix:', process.env.DATABASE_URL?.substring(0, 80))
   try {
     const { email, password, name, businessName, phone, plan } = await request.json();
 
@@ -87,13 +85,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
+    const { data: existing } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
       .limit(1);
 
-    if (existing.length > 0) {
+    if (existing && existing.length > 0) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
         { status: 409 }
@@ -107,29 +105,26 @@ export async function POST(request: NextRequest) {
 
     const tier = plan === 'pro' ? 'pro' : plan === 'elite' ? 'elite' : 'starter';
 
-    await db.insert(users).values({
-      id: userId,
-      email,
-      password: hashedPassword,
-      name,
-      businessName: businessName || null,
-      phone: phone || null,
-      tier,
-      subscriptionStatus: 'trial',
-      trialEndsAt,
-    });
+    const { error: insertError } = await supabaseAdmin
+      .from('users')
+      .insert({ id: userId, email, password: hashedPassword, name, business_name: businessName || null, phone: phone || null, tier, subscription_status: 'trial', trial_ends_at: trialEndsAt });
+
+    if (insertError) {
+      console.error('User insert error:', insertError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     // Provision Twilio phone number; failures are non-fatal
     let twilioNumber = '';
     try {
       await provisionTwilioNumber(userId, phone || null);
       // Fetch the provisioned number
-      const provisioned = await db
-        .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber })
-        .from(phoneNumbers)
-        .where(eq(phoneNumbers.userId, userId))
+      const { data: provisioned } = await supabaseAdmin
+        .from('phone_numbers')
+        .select('twilio_phone_number')
+        .eq('user_id', userId)
         .limit(1);
-      twilioNumber = provisioned[0]?.twilioPhoneNumber || '';
+      twilioNumber = provisioned?.[0]?.twilio_phone_number || '';
     } catch (twilioError) {
       console.error('Twilio provisioning failed — account created, flagged for manual assignment:', twilioError);
     }
