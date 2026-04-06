@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, hashPassword } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users, phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import twilio from 'twilio';
@@ -62,7 +62,6 @@ async function provisionTwilioNumber(userId: string, userPhone: string | null): 
     statusCallbackMethod: 'POST',
   });
 
-  const db = getDb();
   await db.insert(phoneNumbers).values({
     id: crypto.randomUUID(),
     userId,
@@ -86,8 +85,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const db = getDb();
 
     const existing = await db
       .select({ id: users.id })
@@ -126,7 +123,7 @@ export async function POST(request: NextRequest) {
     try {
       await provisionTwilioNumber(userId, phone || null);
       // Fetch the provisioned number
-      const provisioned = await getDb()
+      const provisioned = await db
         .select({ twilioPhoneNumber: phoneNumbers.twilioPhoneNumber })
         .from(phoneNumbers)
         .where(eq(phoneNumbers.userId, userId))

@@ -3,17 +3,13 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 
-let db: ReturnType<typeof drizzle>;
+const connectionString = process.env.DATABASE_URL!
 
-export function getDb() {
-  if (!db) {
-    const client = postgres(process.env.DATABASE_URL!, {
-      max: 1,       // required for serverless
-      ssl: 'require',
-    });
-    db = drizzle(client, { schema });
-  }
-  return db;
-}
+const client = postgres(connectionString, {
+  max: 1,
+  ssl: 'require',
+  idle_timeout: 20,
+  connect_timeout: 10,
+})
 
-export { db };
+export const db = drizzle(client, { schema });

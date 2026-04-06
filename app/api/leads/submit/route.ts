@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import webpush from 'web-push';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { leads, users, calls } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken, generateId } from '@/lib/auth';
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     let callerPhone = '';
     let voicemailTranscription: string | null = null;
     if (callId) {
-      const callRecord = await getDb()
+      const callRecord = await db
         .select({ callerNumber: calls.callerNumber, transcriptText: calls.transcriptText })
         .from(calls)
         .where(eq(calls.id, callId))
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (voicemailTranscription) storedFormData.transcription = voicemailTranscription;
 
     // Fetch business owner info early for tier check
-    const [userRecord] = await getDb()
+    const [userRecord] = await db
       .select({ email: users.email, phone: users.phone, businessName: users.businessName, name: users.name, tier: users.tier, webhookUrl: users.webhookUrl, pushSubscription: users.pushSubscription })
       .from(users)
       .where(eq(users.id, userId))
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     // Save lead to database
     const leadId = generateId();
-    await getDb().insert(leads).values({
+    await db.insert(leads).values({
       id: leadId,
       userId,
       callId: callId || null,

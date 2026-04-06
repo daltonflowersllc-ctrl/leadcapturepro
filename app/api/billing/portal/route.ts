@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth';
@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
   const payload = verifyToken(token);
   if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-  const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
 
   if (!user || !user.stripeCustomerId) {

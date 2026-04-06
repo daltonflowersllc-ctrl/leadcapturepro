@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { verifyToken } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `No price configured for plan: ${plan}` }, { status: 400 });
     }
 
-    const db = getDb();
     const userRecord = await db
       .select({ email: users.email, stripeCustomerId: users.stripeCustomerId })
       .from(users)

@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { db } from './db';
 import { users } from './db/schema';
 import { eq, sql } from 'drizzle-orm';
 
@@ -11,7 +11,6 @@ export const TIER_LIMITS = {
 export type Tier = keyof typeof TIER_LIMITS;
 
 export async function checkSmsLimit(userId: string, tier: Tier) {
-  const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
   if (!user) {
@@ -47,7 +46,6 @@ export async function checkSmsLimit(userId: string, tier: Tier) {
 }
 
 export async function incrementSmsCount(userId: string) {
-  const db = getDb();
   await db
     .update(users)
     .set({ 

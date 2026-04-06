@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth';
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is Pro or Elite tier
-    const userRecord = await getDb()
+    const userRecord = await db
       .select({ tier: users.tier })
       .from(users)
       .where(eq(users.id, payload.userId))
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 });
     }
 
-    await getDb()
+    await db
       .update(users)
       .set({ webhookUrl: webhookUrl || null, updatedAt: new Date() })
       .where(eq(users.id, payload.userId));

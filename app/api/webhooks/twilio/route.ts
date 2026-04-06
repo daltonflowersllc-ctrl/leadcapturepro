@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { calls, phoneNumbers, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { generateId, generateToken } from '@/lib/auth';
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if ((callStatus === 'no-answer' || callStatus === 'busy' || callStatus === 'failed') && from && to) {
       // Look up the phone number record and user
-      const phoneRecord = await getDb()
+      const phoneRecord = await db
         .select({
           id: phoneNumbers.id,
           userId: phoneNumbers.userId,
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
       const { id: phoneNumberId, userId } = phoneRecord[0];
 
-      const userRecord = await getDb()
+      const userRecord = await db
         .select({
           businessName: users.businessName,
           name: users.name,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
       // Create call record
       const callId = generateId();
-      await getDb().insert(calls).values({
+      await db.insert(calls).values({
         id: callId,
         userId,
         phoneNumberId,
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       if (recordingUrl) {
         try {
           const transcription = await transcribeVoicemail(recordingUrl);
-          await getDb()
+          await db
             .update(calls)
             .set({ transcriptText: transcription })
             .where(eq(calls.id, callId));
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
       if (!allowed) {
         console.warn(`SMS limit reached for user ${userId}`);
-        await getDb()
+        await db
           .update(calls)
           .set({ 
             smsNotificationSent: false,
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
         // Increment count and mark as sent
         await incrementSmsCount(userId);
-        await getDb()
+        await db
           .update(calls)
           .set({ smsNotificationSent: true })
           .where(eq(calls.id, callId));

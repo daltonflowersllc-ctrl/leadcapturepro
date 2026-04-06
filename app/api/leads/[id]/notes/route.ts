@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { leads } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth';
@@ -30,7 +30,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Notes field is required' }, { status: 400 });
     }
 
-    await getDb()
+    await db
       .update(leads)
       .set({ notes, updatedAt: new Date() })
       .where(and(eq(leads.id, params.id), eq(leads.userId, payload.userId)));
