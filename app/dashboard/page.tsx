@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { users, phoneNumbers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import DashboardClient from './DashboardClient';
@@ -21,7 +21,6 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const db = getDb();
   const result = await db
     .select({
       id: users.id,
