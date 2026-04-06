@@ -53,6 +53,16 @@ function timeSince(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function isWithinLastWeek(dateStr: string): boolean {
+  return (Date.now() - new Date(dateStr).getTime()) < 7 * 24 * 60 * 60 * 1000;
+}
+
+function isWithinPrevWeek(dateStr: string): boolean {
+  const age = Date.now() - new Date(dateStr).getTime();
+  const msWeek = 7 * 24 * 60 * 60 * 1000;
+  return age >= msWeek && age < 2 * msWeek;
+}
+
 function urgencyBadge(urgency: string | null) {
   const u = (urgency || '').toLowerCase();
   if (u === 'emergency' || u === 'high') {
@@ -407,6 +417,17 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
       ? { background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)' }
       : { background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)' };
 
+  const totalLeads = leads.length;
+  const callsThisWeek = leads.filter(l => isWithinLastWeek(l.createdAt)).length;
+  const callsLastWeek = leads.filter(l => isWithinPrevWeek(l.createdAt)).length;
+  const smsSent = usage?.smsUsed ?? 0;
+  const wonLeads = leads.filter(l => l.status === 'won').length;
+  const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+  const weekTrend: number | undefined =
+    callsLastWeek > 0
+      ? Math.round(((callsThisWeek - callsLastWeek) / callsLastWeek) * 100)
+      : undefined;
+
   return (
     <div style={{ minHeight: '100vh', background: '#0a0f1e', fontFamily: "'DM Sans', sans-serif" }}>
       {/* Banners */}
@@ -480,38 +501,99 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
       </header>
 
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {user.name}</h1>
-            <p className="text-gray-500">You're on the <span className="font-semibold text-blue-600 uppercase">{user.tier}</span> plan</p>
-          </div>
-          
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full md:w-80">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold text-gray-700">SMS Usage</span>
-              <span className="text-xs text-gray-500">{usage ? `${usage.smsUsed} of ${usage.smsLimit}` : '...'} SMS</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  (usage?.percentage ?? 0) > 80 ? 'bg-red-500' : (usage?.percentage ?? 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${Math.min(usage?.percentage ?? 0, 100)}%` }}
-              ></div>
-            </div>
-            {usage && usage.percentage >= 80 && (
-              <p className="text-[10px] text-red-600 font-bold animate-pulse">Running low on SMS — Upgrade to Pro for 500/month</p>
-            )}
-          </div>
+        {/* Welcome */}
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: 26, fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.02em', marginBottom: 6 }}>
+            Welcome back, {user.name.split(' ')[0]}
+          </h1>
+          <p style={{ fontSize: 14, color: '#64748b' }}>Here&apos;s your lead capture overview.</p>
+        </div>
 
-          <div className="flex flex-col items-end gap-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
-            <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-              <span className="text-xl font-bold text-blue-700 tracking-tight">
-                {assignedPhone ? formatPhoneNumber(assignedPhone) : 'Assigning...'}
-              </span>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginBottom: 28 }}>
+          {([
+            {
+              label: 'Total Leads',
+              value: loading ? '—' : String(totalLeads),
+              icon: (
+                <svg style={{ width: 20, height: 20 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              ),
+              iconBg: { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+              trend: undefined as number | undefined,
+              trendUp: true,
+            },
+            {
+              label: 'Calls This Week',
+              value: loading ? '—' : String(callsThisWeek),
+              icon: (
+                <svg style={{ width: 20, height: 20 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              ),
+              iconBg: { background: 'rgba(249,115,22,0.15)', color: '#fb923c' },
+              trend: weekTrend,
+              trendUp: (weekTrend ?? 0) >= 0,
+            },
+            {
+              label: 'SMS Sent',
+              value: loading ? '—' : String(smsSent),
+              icon: (
+                <svg style={{ width: 20, height: 20 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              ),
+              iconBg: { background: 'rgba(16,185,129,0.15)', color: '#34d399' },
+              trend: undefined as number | undefined,
+              trendUp: true,
+            },
+            {
+              label: 'Conversion Rate',
+              value: loading ? '—' : `${conversionRate}%`,
+              icon: (
+                <svg style={{ width: 20, height: 20 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              ),
+              iconBg: { background: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+              trend: !loading && conversionRate > 0 ? conversionRate : undefined as number | undefined,
+              trendUp: conversionRate >= 0,
+            },
+          ] as const).map((card, i) => (
+            <div
+              key={card.label}
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 16,
+                padding: 24,
+                boxShadow: '0 0 0 1px rgba(37,99,235,0.1)',
+                transition: 'all 0.2s ease',
+                animation: `fadeInUp 0.5s ease ${i * 0.1}s both`,
+                cursor: 'default',
+              }}
+              className="hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(37,99,235,0.15)]"
+            >
+              {/* Icon */}
+              <div style={{ ...card.iconBg, width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                {card.icon}
+              </div>
+              {/* Number */}
+              <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1, marginBottom: 10 }}>
+                {card.value}
+              </div>
+              {/* Label + trend */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>{card.label}</span>
+                {card.trend !== undefined && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: card.trendUp ? '#4ade80' : '#f87171', display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {card.trendUp ? '↑' : '↓'} {Math.abs(card.trend)}%
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {error && (
