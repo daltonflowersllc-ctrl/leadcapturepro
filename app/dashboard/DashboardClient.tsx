@@ -334,6 +334,8 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const [usage, setUsage] = useState<Usage | null>(null);
   const [error, setError] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -373,6 +375,17 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes } : l)));
   };
 
+  const handleCopyPhone = async () => {
+    if (!assignedPhone) return;
+    try {
+      await navigator.clipboard.writeText(formatPhoneNumber(assignedPhone));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard not available
+    }
+  };
+
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
@@ -401,6 +414,17 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const smsSent = usage?.smsUsed || 0;
   const wonLeads = leads.filter(l => l.status === 'won').length;
   const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+  type ActivityItem = { icon: string; color: string; text: string; time: string };
+  const recentActivity: ActivityItem[] = leads.slice(0, 5).map(lead => {
+    if (lead.formData?.aiScore) {
+      return { icon: '⭐', color: '#a78bfa', text: `New lead scored ${lead.formData.aiScore}/10`, time: timeSince(lead.createdAt) };
+    }
+    if (lead.status === 'contacted') {
+      return { icon: '💬', color: '#4ade80', text: `SMS sent to ${lead.callerName}`, time: timeSince(lead.updatedAt) };
+    }
+    return { icon: '📞', color: '#60a5fa', text: `Missed call from ${formatPhoneNumber(lead.callerPhone)}`, time: timeSince(lead.createdAt) };
+  });
 
   const userInitials = (user.name || user.email || '?')
     .split(' ')
@@ -570,17 +594,86 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           </div>
         </div>
 
-        {/* Phone Number — temporary minimal display, will be expanded in pt3 */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 32 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Your LeadCapture Number
-            </span>
-            <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 12, padding: '6px 16px' }}>
-              <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '-0.01em' }}>
-                {assignedPhone ? formatPhoneNumber(assignedPhone) : 'Assigning...'}
+        {/* Phone Number + Activity Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+          {/* Phone Number Card */}
+          <div className="dark-card">
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Your LeadCapture Number
               </span>
             </div>
+            {assignedPhone ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span className="pulse-dot"></span>
+                  <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '2rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+                    {formatPhoneNumber(assignedPhone)}
+                  </span>
+                  <button
+                    onClick={handleCopyPhone}
+                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}
+                  >
+                    {copied ? (
+                      <>
+                        <svg style={{ width: 14, height: 14, color: '#4ade80' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span style={{ color: '#4ade80' }}>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSetupOpen(o => !o)}
+                  style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)', color: '#64748b', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span>Setup Instructions</span>
+                  <span style={{ display: 'inline-block', transform: setupOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▾</span>
+                </button>
+                {setupOpen && (
+                  <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.15)', color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                    Forward missed calls to this number in your phone settings
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                <div style={{ height: 40, borderRadius: 10, marginBottom: 12 }} className="shimmer-loading"></div>
+                <div style={{ height: 36, borderRadius: 10, width: '60%' }} className="shimmer-loading"></div>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Activity Feed */}
+          <div className="dark-card">
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Recent Activity
+              </span>
+            </div>
+            {recentActivity.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#475569', fontSize: '0.875rem' }}>
+                Activity will appear here when calls come in
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {recentActivity.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }}></div>
+                    <span style={{ flex: 1, color: '#cbd5e1', fontSize: '0.85rem' }}>{item.icon} {item.text}</span>
+                    <span style={{ color: '#475569', fontSize: '0.75rem', flexShrink: 0 }}>{item.time}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
