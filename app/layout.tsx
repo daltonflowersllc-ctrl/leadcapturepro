@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Analytics } from '@vercel/analytics/next'
+
+const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' })
 
 export const metadata: Metadata = {
   title: 'LeadCapture Pro | AI-Powered Missed Call Lead Capture for Contractors',
@@ -67,7 +70,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body>
+      <body className={`${dmSans.variable} font-[family-name:var(--font-dm-sans)]`}>
         {children}
         <PWAInstallPrompt />
         <Analytics />

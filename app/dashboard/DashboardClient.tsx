@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface User {
   id: string;
@@ -99,6 +100,270 @@ const STATUS_BUTTONS = [
   { value: 'won', label: 'Won', active: 'bg-green-600 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
   { value: 'lost', label: 'Lost', active: 'bg-red-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
 ];
+
+// ─── Sidebar ────────────────────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { icon: '📊', label: 'Dashboard', href: '/dashboard' },
+  { icon: '📥', label: 'Lead Inbox', href: '/dashboard/leads' },
+  { icon: '📈', label: 'Analytics', href: '/dashboard/analytics' },
+  { icon: '💬', label: 'SMS Templates', href: '/dashboard/sms-templates' },
+  { icon: '📞', label: 'Call Setup', href: '/dashboard/call-setup' },
+  { icon: '🔔', label: 'Notifications', href: '/dashboard/notifications' },
+  { icon: '⚙️', label: 'Settings', href: '/settings' },
+];
+
+function SidebarNavLink({
+  icon,
+  label,
+  href,
+  isActive,
+  collapsed,
+}: {
+  icon: string;
+  label: string;
+  href: string;
+  isActive: boolean;
+  collapsed: boolean;
+}) {
+  return (
+    <div className="group relative mb-0.5">
+      <Link
+        href={href}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '9px 12px',
+          borderRadius: 8,
+          textDecoration: 'none',
+          color: isActive ? '#f8fafc' : '#94a3b8',
+          background: isActive ? 'rgba(37,99,235,0.12)' : 'transparent',
+          borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
+          fontWeight: isActive ? 600 : 400,
+          fontSize: 14,
+          transition: 'color 0.15s ease, background 0.15s ease',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+        }}
+        className="hover:bg-white/5 hover:text-[#f8fafc]"
+      >
+        <span style={{ fontSize: 17, flexShrink: 0, width: 20, textAlign: 'center', lineHeight: 1 }}>
+          {icon}
+        </span>
+        {!collapsed && <span>{label}</span>}
+      </Link>
+      {/* Tooltip shown only when collapsed */}
+      {collapsed && (
+        <span
+          className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[200]"
+          style={{ background: '#1e293b', color: '#f8fafc', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+        >
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SidebarActionButton({
+  icon,
+  label,
+  collapsed,
+  onClick,
+  disabled,
+}: {
+  icon: string;
+  label: string;
+  collapsed: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="group relative mb-0.5">
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '9px 12px',
+          borderRadius: 8,
+          background: 'transparent',
+          border: 'none',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          color: '#94a3b8',
+          fontWeight: 400,
+          fontSize: 14,
+          width: '100%',
+          textAlign: 'left',
+          transition: 'color 0.15s ease, background 0.15s ease',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          opacity: disabled ? 0.5 : 1,
+        }}
+        className="hover:bg-white/5 hover:text-[#f8fafc]"
+      >
+        <span style={{ fontSize: 17, flexShrink: 0, width: 20, textAlign: 'center', lineHeight: 1 }}>
+          {icon}
+        </span>
+        {!collapsed && <span>{label}</span>}
+      </button>
+      {collapsed && (
+        <span
+          className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[200]"
+          style={{ background: '#1e293b', color: '#f8fafc', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+        >
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Sidebar({
+  collapsed,
+  onToggle,
+  onBilling,
+  portalLoading,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  onBilling: () => void;
+  portalLoading: boolean;
+}) {
+  const pathname = usePathname();
+
+  const handleLogout = () => {
+    window.location.href = '/api/auth/logout';
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        width: collapsed ? 64 : 240,
+        background: '#0d1526',
+        borderRight: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 100,
+        transition: 'width 0.2s ease',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+      }}
+    >
+      {/* Logo */}
+      <div
+        style={{
+          padding: '18px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            background: '#2563eb',
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+            />
+          </svg>
+        </div>
+        {!collapsed && (
+          <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+            LeadCapture<span style={{ color: '#2563eb' }}>Pro</span>
+          </span>
+        )}
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ flex: 1, padding: '10px 8px', overflowY: 'auto' }}>
+        {NAV_ITEMS.map(({ icon, label, href }) => (
+          <SidebarNavLink
+            key={href}
+            icon={icon}
+            label={label}
+            href={href}
+            isActive={pathname === href}
+            collapsed={collapsed}
+          />
+        ))}
+      </nav>
+
+      {/* Bottom actions */}
+      <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+        <SidebarActionButton
+          icon="💳"
+          label={portalLoading ? 'Loading…' : 'Billing'}
+          collapsed={collapsed}
+          onClick={onBilling}
+          disabled={portalLoading}
+        />
+        <SidebarActionButton
+          icon="🚪"
+          label="Logout"
+          collapsed={collapsed}
+          onClick={handleLogout}
+        />
+      </div>
+
+      {/* Collapse toggle */}
+      <button
+        onClick={onToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        style={{
+          position: 'absolute',
+          right: -12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 24,
+          height: 24,
+          background: '#2563eb',
+          border: 'none',
+          borderRadius: '50%',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 101,
+          boxShadow: '0 2px 8px rgba(37,99,235,0.5)',
+          flexShrink: 0,
+        }}
+      >
+        <svg width="11" height="11" fill="none" stroke="white" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.5"
+            d={collapsed ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'}
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ─── LeadCard ───────────────────────────────────────────────────────────────
 
 function LeadCard({
   lead,
@@ -284,8 +549,8 @@ function LeadCard({
         onClick={handleGetScripts}
         disabled={loadingScripts || isStarter}
         className={`w-full text-xs px-3 py-2 rounded-lg transition font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50 ${
-          isStarter 
-            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' 
+          isStarter
+            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
             : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
         }`}
       >
@@ -328,12 +593,27 @@ function LeadCard({
   );
 }
 
+// ─── DashboardClient ─────────────────────────────────────────────────────────
+
 export default function DashboardClient({ user, assignedPhone }: { user: User; assignedPhone: string | null }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [error, setError] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Auto-collapse on mobile
+  useEffect(() => {
+    const checkWidth = () => {
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -392,136 +672,125 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
   const isStarter = user.tier === 'starter';
   const isPastDue = user.subscriptionStatus === 'past_due';
+  const sidebarWidth = sidebarCollapsed ? 64 : 240;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Banners */}
-      {isPastDue && (
-        <div className="bg-red-600 text-white py-3 px-4 text-center font-medium flex items-center justify-center gap-2">
-          <span>⚠️ Payment Failed — Your payment method failed. Please update your card to avoid losing access.</span>
-          <button onClick={handleManageBilling} className="underline font-bold hover:text-red-100">Update Payment →</button>
-        </div>
-      )}
-      
-      {!isPastDue && isStarter && (
-        <div className="bg-blue-600 text-white py-3 px-4 text-center font-medium flex items-center justify-center gap-2">
-          <span>🤖 Unlock AI Features — Upgrade to Pro to get AI lead scoring, call scripts, and voicemail transcription.</span>
-          <Link href="/subscribe" className="underline font-bold hover:text-blue-100">Upgrade to Pro →</Link>
-        </div>
-      )}
+    <div style={{ minHeight: '100vh', background: '#0a0f1e', display: 'flex' }}>
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((c) => !c)}
+        onBilling={handleManageBilling}
+        portalLoading={portalLoading}
+      />
 
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-2">
-              <div className="bg-blue-600 p-1.5 rounded-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
+      {/* Main content offset by sidebar width */}
+      <div
+        style={{
+          marginLeft: sidebarWidth,
+          flex: 1,
+          minWidth: 0,
+          transition: 'margin-left 0.2s ease',
+          background: '#f8fafc',
+        }}
+      >
+        {/* Banners */}
+        {isPastDue && (
+          <div className="bg-red-600 text-white py-3 px-4 text-center font-medium flex items-center justify-center gap-2">
+            <span>⚠️ Payment Failed — Your payment method failed. Please update your card to avoid losing access.</span>
+            <button onClick={handleManageBilling} className="underline font-bold hover:text-red-100">Update Payment →</button>
+          </div>
+        )}
+
+        {!isPastDue && isStarter && (
+          <div className="bg-blue-600 text-white py-3 px-4 text-center font-medium flex items-center justify-center gap-2">
+            <span>🤖 Unlock AI Features — Upgrade to Pro to get AI lead scoring, call scripts, and voicemail transcription.</span>
+            <Link href="/subscribe" className="underline font-bold hover:text-blue-100">Upgrade to Pro →</Link>
+          </div>
+        )}
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {user.name}</h1>
+              <p className="text-gray-500">You&apos;re on the <span className="font-semibold text-blue-600 uppercase">{user.tier}</span> plan</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full md:w-80">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-semibold text-gray-700">SMS Usage</span>
+                <span className="text-xs text-gray-500">{usage ? `${usage.smsUsed} of ${usage.smsLimit}` : '...'} SMS</span>
               </div>
-              <span className="text-xl font-bold text-gray-900 tracking-tight">LeadCapture<span className="text-blue-600">Pro</span></span>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={handleManageBilling}
-                disabled={portalLoading}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition"
-              >
-                {portalLoading ? 'Loading...' : 'Manage Billing'}
-              </button>
-              <Link href="/settings" className="text-gray-500 hover:text-gray-700 transition">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {user.name}</h1>
-            <p className="text-gray-500">You're on the <span className="font-semibold text-blue-600 uppercase">{user.tier}</span> plan</p>
-          </div>
-          
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full md:w-80">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold text-gray-700">SMS Usage</span>
-              <span className="text-xs text-gray-500">{usage ? `${usage.smsUsed} of ${usage.smsLimit}` : '...'} SMS</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  (usage?.percentage ?? 0) > 80 ? 'bg-red-500' : (usage?.percentage ?? 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${Math.min(usage?.percentage ?? 0, 100)}%` }}
-              ></div>
-            </div>
-            {usage && usage.percentage >= 80 && (
-              <p className="text-[10px] text-red-600 font-bold animate-pulse">Running low on SMS — Upgrade to Pro for 500/month</p>
-            )}
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
-            <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-              {assignedPhone ? (
-                <span className="text-xl font-bold text-blue-700 tracking-tight">
-                  {formatPhoneNumber(assignedPhone)}
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-blue-500">
-                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-200 border-t-blue-500"></span>
-                  <span className="text-sm font-medium">Assigning your number...</span>
-                </span>
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    (usage?.percentage ?? 0) > 80 ? 'bg-red-500' : (usage?.percentage ?? 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(usage?.percentage ?? 0, 100)}%` }}
+                ></div>
+              </div>
+              {usage && usage.percentage >= 80 && (
+                <p className="text-[10px] text-red-600 font-bold animate-pulse">Running low on SMS — Upgrade to Pro for 500/month</p>
               )}
             </div>
-          </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-xl h-64 animate-pulse border border-gray-100"></div>
-            ))}
-          </div>
-        ) : leads.length === 0 ? (
-          <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-              </svg>
+            <div className="flex flex-col items-end gap-2">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
+              <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
+                {assignedPhone ? (
+                  <span className="text-xl font-bold text-blue-700 tracking-tight">
+                    {formatPhoneNumber(assignedPhone)}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-blue-500">
+                    <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-200 border-t-blue-500"></span>
+                    <span className="text-sm font-medium">Assigning your number...</span>
+                  </span>
+                )}
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No leads yet</h3>
-            <p className="text-gray-500 mb-6">Once you forward your missed calls, leads will appear here in real-time.</p>
-            <Link href="/setup" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
-              View Setup Guide
-            </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {leads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                onStatusChange={handleStatusChange}
-                onNotesChange={handleNotesChange}
-                isStarter={isStarter}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-xl h-64 animate-pulse border border-gray-100"></div>
+              ))}
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">No leads yet</h3>
+              <p className="text-gray-500 mb-6">Once you forward your missed calls, leads will appear here in real-time.</p>
+              <Link href="/setup" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+                View Setup Guide
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {leads.map((lead) => (
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  onStatusChange={handleStatusChange}
+                  onNotesChange={handleNotesChange}
+                  isStarter={isStarter}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
