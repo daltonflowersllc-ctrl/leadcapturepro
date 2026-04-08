@@ -336,6 +336,8 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const [portalLoading, setPortalLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -403,6 +405,45 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
     }
   };
 
+  const handleQuickContact = async (id: string) => {
+    try {
+      await fetch(`/api/leads/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'contacted' }),
+      });
+      handleStatusChange(id, 'contacted');
+    } catch {
+      // silent fail
+    }
+  };
+
+  const handleExportCsv = () => {
+    const q = search.toLowerCase();
+    const toExport = leads.filter(lead => {
+      const matchesSearch = !q || lead.callerName.toLowerCase().includes(q) || lead.callerPhone.includes(q);
+      const matchesFilter = !statusFilter || lead.status === statusFilter;
+      return matchesSearch && matchesFilter;
+    });
+    const headers = ['Name', 'Phone', 'Email', 'Service', 'Status', 'Date'];
+    const rows = toExport.map(l => [
+      l.callerName,
+      l.callerPhone,
+      l.callerEmail || '',
+      l.serviceNeeded || '',
+      l.status,
+      new Date(l.createdAt).toLocaleDateString(),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leads.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const isStarter = user.tier === 'starter';
   const isPastDue = user.subscriptionStatus === 'past_due';
 
@@ -414,6 +455,13 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const smsSent = usage?.smsUsed || 0;
   const wonLeads = leads.filter(l => l.status === 'won').length;
   const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+  const filteredLeads = leads.filter(lead => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || lead.callerName.toLowerCase().includes(q) || lead.callerPhone.includes(q);
+    const matchesFilter = !statusFilter || lead.status === statusFilter;
+    return matchesSearch && matchesFilter;
+  });
 
   type ActivityItem = { icon: string; color: string; text: string; time: string };
   const recentActivity: ActivityItem[] = leads.slice(0, 5).map(lead => {
@@ -678,44 +726,190 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', padding: '12px 16px', borderRadius: 10, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+            <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
             {error}
           </div>
         )}
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-xl h-64 animate-pulse border border-gray-100"></div>
-            ))}
-          </div>
-        ) : leads.length === 0 ? (
-          <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-              </svg>
+        {/* Lead Inbox CRM Table */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+          {/* Table toolbar */}
+          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' as const }}>
+            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              Lead Inbox
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+              <div style={{ position: 'relative' as const }}>
+                <svg style={{ position: 'absolute' as const, left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#475569', pointerEvents: 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search leads..."
+                  style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#f8fafc', fontSize: '0.82rem', outline: 'none', width: 180 }}
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,21,38,0.9)', color: '#94a3b8', fontSize: '0.82rem', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="">All Status</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+              </select>
+              <button
+                onClick={handleExportCsv}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(37,99,235,0.4)', background: 'rgba(37,99,235,0.1)', color: '#60a5fa', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export CSV
+              </button>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No leads yet</h3>
-            <p className="text-gray-500 mb-6">Once you forward your missed calls, leads will appear here in real-time.</p>
-            <Link href="/setup" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
-              View Setup Guide
-            </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {leads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                onStatusChange={handleStatusChange}
-                onNotesChange={handleNotesChange}
-                isStarter={isStarter}
-              />
-            ))}
-          </div>
-        )}
+
+          {loading ? (
+            <div>
+              {[1,2,3,4].map(i => (
+                <div key={i} style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div style={{ flex: 2, height: 14, borderRadius: 6 }} className="shimmer-loading"></div>
+                  <div style={{ flex: 1, height: 14, borderRadius: 6 }} className="shimmer-loading"></div>
+                  <div style={{ flex: 1, height: 22, width: 70, borderRadius: 99 }} className="shimmer-loading"></div>
+                  <div style={{ flex: 1, height: 14, borderRadius: 6 }} className="shimmer-loading"></div>
+                  <div style={{ flex: 1, height: 28, borderRadius: 8 }} className="shimmer-loading"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div style={{ textAlign: 'center' as const, padding: '64px 24px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 16 }}>📭</div>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.125rem', fontWeight: 700, color: '#f8fafc', marginBottom: 8 }}>
+                {leads.length > 0 ? 'No matching leads' : 'No leads yet'}
+              </h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: 24 }}>
+                {leads.length > 0 ? 'Try adjusting your search or filter.' : 'Missed calls will appear here automatically'}
+              </p>
+              {leads.length === 0 && (
+                <Link href="/setup" style={{ display: 'inline-block', padding: '8px 20px', borderRadius: 8, background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}>
+                  View Setup Guide
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' as const }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    {['Caller', 'Time', 'Status', 'AI Score', 'Actions'].map(col => (
+                      <th key={col} style={{ padding: '11px 24px', textAlign: 'left' as const, fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: '0.08em', whiteSpace: 'nowrap' as const }}>
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map(lead => {
+                    const rawScore = lead.formData?.aiScore;
+                    const scoreNum = (() => {
+                      if (!rawScore) return null;
+                      const n = Number(rawScore);
+                      if (!isNaN(n)) return Math.min(10, Math.max(1, Math.round(n)));
+                      if (rawScore === 'hot') return 9;
+                      if (rawScore === 'warm') return 6;
+                      if (rawScore === 'cold') return 3;
+                      return null;
+                    })();
+                    const scoreColor = scoreNum !== null
+                      ? (scoreNum >= 8 ? '#4ade80' : scoreNum >= 5 ? '#fbbf24' : '#f87171')
+                      : '#475569';
+                    const statusMap: Record<string, { bg: string; color: string; label: string }> = {
+                      new:       { bg: 'rgba(37,99,235,0.2)',   color: '#60a5fa', label: 'NEW' },
+                      contacted: { bg: 'rgba(245,158,11,0.2)',  color: '#fbbf24', label: 'CONTACTED' },
+                      won:       { bg: 'rgba(22,163,74,0.2)',   color: '#4ade80', label: 'CONVERTED' },
+                      lost:      { bg: 'rgba(239,68,68,0.2)',   color: '#f87171', label: 'MISSED' },
+                    };
+                    const sc = statusMap[lead.status] ?? statusMap.new;
+
+                    return (
+                      <tr
+                        key={lead.id}
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.06)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        {/* Caller */}
+                        <td style={{ padding: '14px 24px' }}>
+                          <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.875rem', marginBottom: 2 }}>{lead.callerName}</div>
+                          <div style={{ color: '#64748b', fontSize: '0.78rem' }}>{lead.callerPhone}</div>
+                        </td>
+                        {/* Time */}
+                        <td style={{ padding: '14px 24px', color: '#64748b', fontSize: '0.82rem', whiteSpace: 'nowrap' as const }}>
+                          {timeSince(lead.createdAt)}
+                        </td>
+                        {/* Status */}
+                        <td style={{ padding: '14px 24px' }}>
+                          <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 99, background: sc.bg, color: sc.color, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em' }}>
+                            {sc.label}
+                          </span>
+                        </td>
+                        {/* AI Score */}
+                        <td style={{ padding: '14px 24px' }}>
+                          {isStarter ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#475569', fontSize: '0.78rem', fontWeight: 600 }}>
+                              <svg style={{ width: 12, height: 12 }} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                              PRO
+                            </span>
+                          ) : scoreNum !== null ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', minWidth: 48 }}>
+                                <div style={{ height: '100%', width: `${scoreNum * 10}%`, background: scoreColor, borderRadius: 99 }}></div>
+                              </div>
+                              <span style={{ color: scoreColor, fontSize: '0.78rem', fontWeight: 700, minWidth: 16 }}>{scoreNum}</span>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#475569', fontSize: '0.78rem' }}>—</span>
+                          )}
+                        </td>
+                        {/* Actions */}
+                        <td style={{ padding: '14px 24px' }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                            <a
+                              href={`tel:${lead.callerPhone}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.1)', color: '#60a5fa', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' as const }}
+                            >
+                              <svg style={{ width: 11, height: 11 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                              Call Back
+                            </a>
+                            {lead.status !== 'contacted' && lead.status !== 'won' && (
+                              <button
+                                onClick={() => handleQuickContact(lead.id)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.1)', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+                              >
+                                <svg style={{ width: 11, height: 11 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Mark Contacted
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
