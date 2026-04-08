@@ -339,6 +339,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [copiedSetup, setCopiedSetup] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -383,7 +384,9 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
     try {
       await navigator.clipboard.writeText(formatPhoneNumber(assignedPhone));
       setCopied(true);
+      setShowToast(true);
       setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setShowToast(false), 2500);
     } catch {
       // clipboard not available
     }
@@ -551,6 +554,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
             <button
               onClick={handleManageBilling}
               disabled={portalLoading}
+              className="hidden sm:block"
               style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: 8 }}
             >
               {portalLoading ? 'Loading…' : 'Billing'}
@@ -576,7 +580,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}>
         {/* Welcome Header */}
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 32, animation: 'fadeInUp 0.4s ease 0.05s both' }}>
           <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: '2rem', fontWeight: 800, color: '#f8fafc', marginBottom: 6, letterSpacing: '-0.02em' }}>
             Welcome back, {user.name}
           </h1>
@@ -585,8 +589,8 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           </p>
         </div>
 
-        {/* Stats Cards 2x2 Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+        {/* Stats Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {/* Card 1: Total Leads */}
           <div className="stat-card" style={{ animationDelay: '0.0s' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -657,7 +661,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
         </div>
 
         {/* Phone Number + Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8" style={{ animation: 'fadeInUp 0.4s ease 0.2s both' }}>
           {/* Phone Number Card */}
           <div className="dark-card">
             <div style={{ marginBottom: 12 }}>
@@ -747,7 +751,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
         )}
 
         {/* Lead Inbox CRM Table */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden', animation: 'fadeInUp 0.4s ease 0.3s both' }}>
           {/* Table toolbar */}
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' as const }}>
             <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
@@ -927,7 +931,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
         {/* Upgrade Banner — starter and pro only */}
         {user.tier !== 'elite' && (
-          <div style={{ marginTop: 32, borderRadius: 16, background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)', border: '1px solid rgba(37,99,235,0.3)', padding: '32px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' as const }}>
+          <div style={{ marginTop: 32, borderRadius: 16, background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)', border: '1px solid rgba(37,99,235,0.3)', padding: '32px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' as const, animation: 'fadeInUp 0.4s ease 0.38s both' }}>
             {/* Left: headline + locked features */}
             <div style={{ flex: 1, minWidth: 260 }}>
               <div style={{ fontSize: '1.75rem', marginBottom: 12 }}>🚀</div>
@@ -964,7 +968,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
         )}
 
         {/* Quick Actions Panel */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ marginTop: 32, marginBottom: 8 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginTop: 32, marginBottom: 8, animation: 'fadeInUp 0.4s ease 0.44s both' }}>
           {/* Copy Setup Instructions */}
           <button
             onClick={handleCopySetup}
@@ -1019,7 +1023,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '28px 16px', textAlign: 'center' as const }}>
-        <p style={{ color: '#334155', fontSize: '0.82rem', margin: 0 }}>
+        <p style={{ color: '#475569', fontSize: '0.82rem', margin: 0 }}>
           LeadCapture Pro © 2026&nbsp;&nbsp;·&nbsp;&nbsp;
           <a href="/support" style={{ color: '#475569', textDecoration: 'none' }}>Support</a>
           &nbsp;&nbsp;·&nbsp;&nbsp;
@@ -1028,6 +1032,25 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           <a href="/status" style={{ color: '#475569', textDecoration: 'none' }}>Status</a>
         </p>
       </footer>
+
+      {/* Copy number toast — bottom-right */}
+      {showToast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 200,
+          background: '#0d1526',
+          border: '1px solid rgba(34,197,94,0.35)',
+          borderRadius: 12, padding: '12px 18px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          animation: 'fadeInUp 0.3s ease both',
+          color: '#f8fafc', fontSize: '0.875rem', fontWeight: 500,
+        }}>
+          <svg style={{ width: 16, height: 16, color: '#4ade80', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          Number copied to clipboard
+        </div>
+      )}
     </div>
   );
 }
