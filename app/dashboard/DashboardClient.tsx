@@ -393,6 +393,15 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const isStarter = user.tier === 'starter';
   const isPastDue = user.subscriptionStatus === 'past_due';
 
+  const now = Date.now();
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  const leadsThisWeek = leads.filter(l => now - new Date(l.createdAt).getTime() < oneWeek);
+  const totalLeads = leads.length;
+  const callsThisWeek = leadsThisWeek.length;
+  const smsSent = usage?.smsUsed || 0;
+  const wonLeads = leads.filter(l => l.status === 'won').length;
+  const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
   const userInitials = (user.name || user.email || '?')
     .split(' ')
     .map((n: string) => n[0] || '')
@@ -480,34 +489,95 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
       </header>
 
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back, {user.name}</h1>
-            <p className="text-gray-500">You're on the <span className="font-semibold text-blue-600 uppercase">{user.tier}</span> plan</p>
-          </div>
-          
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full md:w-80">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold text-gray-700">SMS Usage</span>
-              <span className="text-xs text-gray-500">{usage ? `${usage.smsUsed} of ${usage.smsLimit}` : '...'} SMS</span>
+        {/* Welcome Header */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: '2rem', fontWeight: 800, color: '#f8fafc', marginBottom: 6, letterSpacing: '-0.02em' }}>
+            Welcome back, {user.name}
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+            You&apos;re on the <span style={{ fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase' }}>{user.tier}</span> plan
+          </p>
+        </div>
+
+        {/* Stats Cards 2x2 Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+          {/* Card 1: Total Leads */}
+          <div className="stat-card" style={{ animationDelay: '0.0s' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(37,99,235,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ width: 20, height: 20, color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 600 }}>↑ {leadsThisWeek.length} this week</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  (usage?.percentage ?? 0) > 80 ? 'bg-red-500' : (usage?.percentage ?? 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${Math.min(usage?.percentage ?? 0, 100)}%` }}
-              ></div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1, marginBottom: 6 }}>
+              {loading ? '—' : totalLeads}
             </div>
-            {usage && usage.percentage >= 80 && (
-              <p className="text-[10px] text-red-600 font-bold animate-pulse">Running low on SMS — Upgrade to Pro for 500/month</p>
-            )}
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', fontWeight: 500 }}>Total Leads</div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
-            <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-              <span className="text-xl font-bold text-blue-700 tracking-tight">
+          {/* Card 2: Calls This Week */}
+          <div className="stat-card" style={{ animationDelay: '0.1s' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(234,88,12,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ width: 20, height: 20, color: '#f97316' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <span style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 600 }}>↑ vs last week</span>
+            </div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1, marginBottom: 6 }}>
+              {loading ? '—' : callsThisWeek}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', fontWeight: 500 }}>Calls This Week</div>
+          </div>
+
+          {/* Card 3: SMS Sent */}
+          <div className="stat-card" style={{ animationDelay: '0.2s' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(22,163,74,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ width: 20, height: 20, color: '#22c55e' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
+                {usage ? `${usage.percentage}% of limit` : '...'}
+              </span>
+            </div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1, marginBottom: 6 }}>
+              {usage ? smsSent : '—'}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', fontWeight: 500 }}>SMS Sent</div>
+          </div>
+
+          {/* Card 4: Conversion Rate */}
+          <div className="stat-card" style={{ animationDelay: '0.3s' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ width: 20, height: 20, color: '#a78bfa' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <span style={{ color: conversionRate > 0 ? '#4ade80' : '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
+                {conversionRate > 0 ? `↑ ${wonLeads} won` : '—'}
+              </span>
+            </div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1, marginBottom: 6 }}>
+              {loading ? '—' : `${conversionRate}%`}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.875rem', fontWeight: 500 }}>Conversion Rate</div>
+          </div>
+        </div>
+
+        {/* Phone Number — temporary minimal display, will be expanded in pt3 */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 32 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Your LeadCapture Number
+            </span>
+            <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 12, padding: '6px 16px' }}>
+              <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '-0.01em' }}>
                 {assignedPhone ? formatPhoneNumber(assignedPhone) : 'Assigning...'}
               </span>
             </div>
