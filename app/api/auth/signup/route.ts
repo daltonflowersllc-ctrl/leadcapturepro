@@ -2,15 +2,11 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, hashPassword } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import twilio from 'twilio';
 import { stripe } from '@/lib/stripe';
 import { sendWelcomeEmail } from '@/lib/email';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 function extractAreaCode(phone: string): number | null {
   const digits = phone.replace(/\D/g, '');
