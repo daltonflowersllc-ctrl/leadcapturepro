@@ -468,9 +468,16 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           <div className="flex flex-col items-end gap-2">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
             <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-              <span className="text-xl font-bold text-blue-700 tracking-tight">
-                {assignedPhone ? formatPhoneNumber(assignedPhone) : 'Assigning...'}
-              </span>
+              {assignedPhone ? (
+                <span className="text-xl font-bold text-blue-700 tracking-tight">
+                  {formatPhoneNumber(assignedPhone)}
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-blue-500">
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-200 border-t-blue-500"></span>
+                  <span className="text-sm font-medium">Assigning your number...</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
