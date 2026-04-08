@@ -338,6 +338,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
   const [setupOpen, setSetupOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [copiedSetup, setCopiedSetup] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -415,6 +416,19 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
       handleStatusChange(id, 'contacted');
     } catch {
       // silent fail
+    }
+  };
+
+  const handleCopySetup = async () => {
+    const text = assignedPhone
+      ? `Forward your missed calls to ${formatPhoneNumber(assignedPhone)} in your phone settings. All missed calls will be automatically captured as leads in your LeadCapture Pro dashboard.`
+      : 'Assign a phone number in your dashboard first, then forward your missed calls to it in your phone settings.';
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSetup(true);
+      setTimeout(() => setCopiedSetup(false), 2000);
+    } catch {
+      // clipboard not available
     }
   };
 
@@ -910,7 +924,110 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
             </div>
           )}
         </div>
+
+        {/* Upgrade Banner — starter and pro only */}
+        {user.tier !== 'elite' && (
+          <div style={{ marginTop: 32, borderRadius: 16, background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)', border: '1px solid rgba(37,99,235,0.3)', padding: '32px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' as const }}>
+            {/* Left: headline + locked features */}
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: '1.75rem', marginBottom: 12 }}>🚀</div>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', marginBottom: 16, letterSpacing: '-0.02em', margin: '0 0 16px 0' }}>
+                Unlock Your Full Growth Stack
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, marginTop: 16 }}>
+                {[
+                  'AI Lead Scoring (score leads 1-10 automatically)',
+                  'Voicemail Transcription (read missed voicemails)',
+                  'Personalized AI SMS (custom responses per caller)',
+                  'Zapier Integration (connect 5000+ apps)',
+                ].map((feature, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8', fontSize: '0.875rem' }}>
+                    <span>🔒</span>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Right: CTA */}
+            <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <Link
+                href="/subscribe"
+                style={{ display: 'inline-block', padding: '14px 32px', borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1rem', textDecoration: 'none', boxShadow: '0 4px 24px rgba(37,99,235,0.3)', transition: 'box-shadow 0.2s', whiteSpace: 'nowrap' as const }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 30px rgba(37,99,235,0.5)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 4px 24px rgba(37,99,235,0.3)')}
+              >
+                Upgrade to Pro — $249/mo
+              </Link>
+              <span style={{ color: '#64748b', fontSize: '0.78rem' }}>7-day free trial included</span>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions Panel */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ marginTop: 32, marginBottom: 8 }}>
+          {/* Copy Setup Instructions */}
+          <button
+            onClick={handleCopySetup}
+            style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '20px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'all 0.2s', minHeight: 90 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <span style={{ fontSize: '1.5rem', marginBottom: 8 }}>📋</span>
+            <span style={{ color: copiedSetup ? '#4ade80' : '#94a3b8', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center' as const, transition: 'color 0.2s' }}>
+              {copiedSetup ? 'Copied!' : 'Copy Setup Instructions'}
+            </span>
+          </button>
+          {/* Download Lead Report */}
+          <button
+            onClick={handleExportCsv}
+            style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '20px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'all 0.2s', minHeight: 90 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <span style={{ fontSize: '1.5rem', marginBottom: 8 }}>📊</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center' as const }}>Download Lead Report</span>
+          </button>
+          {/* Configure SMS Template */}
+          <a
+            href="/settings"
+            style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '20px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none', minHeight: 90 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <span style={{ fontSize: '1.5rem', marginBottom: 8 }}>⚙️</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center' as const }}>Configure SMS Template</span>
+          </a>
+          {/* Test Your Number */}
+          {assignedPhone ? (
+            <a
+              href={`tel:${assignedPhone}`}
+              style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '20px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none', minHeight: 90 }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(37,99,235,0.08)'; e.currentTarget.style.borderColor = 'rgba(37,99,235,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+            >
+              <span style={{ fontSize: '1.5rem', marginBottom: 8 }}>📞</span>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center' as const }}>Test Your Number</span>
+            </a>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '20px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', minHeight: 90, opacity: 0.4 }}>
+              <span style={{ fontSize: '1.5rem', marginBottom: 8 }}>📞</span>
+              <span style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center' as const }}>Test Your Number</span>
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '28px 16px', textAlign: 'center' as const }}>
+        <p style={{ color: '#334155', fontSize: '0.82rem', margin: 0 }}>
+          LeadCapture Pro © 2026&nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="/support" style={{ color: '#475569', textDecoration: 'none' }}>Support</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="/docs" style={{ color: '#475569', textDecoration: 'none' }}>Docs</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="/status" style={{ color: '#475569', textDecoration: 'none' }}>Status</a>
+        </p>
+      </footer>
     </div>
   );
 }
