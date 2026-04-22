@@ -6,7 +6,7 @@ import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
 import { sendPaymentFailedEmail, sendAccountSuspendedEmail } from '@/lib/email';
-import { welcomeEmail, sendEmail } from '@/lib/emails/templates';
+import { welcomeEmail, trialEndingEmail, sendEmail } from '@/lib/emails/templates';
 
 function planTierFromPriceId(priceId: string): string {
   if (priceId === process.env.STRIPE_PRO_MONTHLY_PRICE_ID) return 'pro';
@@ -34,50 +34,101 @@ export async function POST(request: NextRequest) {
         const customerEmail = session.customer_email || session.customer_details?.email;
         const priceId = session.line_items?.data[0]?.price?.id || session.metadata?.priceId;
 
-        if (customerEmail) {
-          const tier = priceId ? planTierFromPriceId(priceId) : 'starter';
-          await supabaseAdmin
-            .from('users')
-            .update({
-              subscription_status: 'active',
-              stripe_customer_id: session.customer as string,
-              stripe_subscription_id: session.subscription as string,
-              tier,
-              trial_ends_at: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('email', customerEmail);
+        if (!customerEmail) {
+          console.error('No customer email on checkout session');
+          break;
+        }
 
-          const { data: user, error } = await supabaseAdmin
-            .from('users')
-            .select('owner_name, business_name, plan, twilio_number, email')
-            .eq('email', customerEmail)
-            .single();
+        // Retrieve subscription to determine trial status
+        const subscriptionId = session.subscription as string;
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-          if (error || !user) {
-            console.error('User not found for checkout session:', customerEmail);
-            break;
-          }
+        const tier = priceId ? planTierFromPriceId(priceId) : 'starter';
+        const trialEnd = subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null;
 
-          const html = welcomeEmail({
-            ownerName: user.owner_name || 'there',
-            businessName: user.business_name || 'your business',
-            twilioNumber: user.twilio_number || 'Assigning shortly',
-            planName: user.plan || 'Starter',
+        await supabaseAdmin
+          .from('users')
+          .update({
+            subscription_status: subscription.status, // 'trialing' during free trial
+            stripe_customer_id: session.customer as string,
+            stripe_subscription_id: subscriptionId,
+            tier,
+            trial_ends_at: trialEnd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('email', customerEmail);
+
+        const { data: user, error } = await supabaseAdmin
+          .from('users')
+          .select('id, name, business_name, tier, email')
+          .eq('email', customerEmail)
+          .single();
+
+        if (error || !user) {
+          console.error('User not found for checkout session:', customerEmail);
+          break;
+        }
+
+        const { data: phoneRows } = await supabaseAdmin
+          .from('phone_numbers')
+          .select('twilio_phone_number')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        const html = welcomeEmail({
+          ownerName: user.name || 'there',
+          businessName: user.business_name || 'your business',
+          twilioNumber: phoneRows?.[0]?.twilio_phone_number || 'Assigning shortly',
+          planName: user.tier || 'Starter',
+          trialEnd,
+        });
+
+        try {
+          await sendEmail(customerEmail, "Welcome to LeadCapture Pro — you're live 🎉", html);
+          console.log('Welcome email sent to', customerEmail);
+        } catch (err) {
+          console.error('Welcome email failed:', err);
+        }
+
+        break;
+      }
+
+      case 'customer.subscription.trial_will_end': {
+        const trialSub = event.data.object as Stripe.Subscription;
+        const trialCustomerId = trialSub.customer as string;
+
+        const { data: trialUser } = await supabaseAdmin
+          .from('users')
+          .select('email, name, business_name, tier')
+          .eq('stripe_customer_id', trialCustomerId)
+          .single();
+
+        if (trialUser) {
+          const daysLeft = Math.ceil(
+            (trialSub.trial_end! * 1000 - Date.now()) / (1000 * 60 * 60 * 24)
+          );
+          const planPriceMap: Record<string, number> = { starter: 149, pro: 249, elite: 399 };
+          const price = planPriceMap[trialUser.tier] ?? 149;
+
+          const html = trialEndingEmail({
+            ownerName: trialUser.name || 'there',
+            businessName: trialUser.business_name || 'your business',
+            daysLeft,
+            planName: trialUser.tier || 'starter',
+            price,
           });
 
           try {
             await sendEmail(
-              customerEmail,
-              "Welcome to LeadCapture Pro — you're live 🎉",
+              trialUser.email,
+              `Your trial ends in ${daysLeft} days — don't lose your leads`,
               html
             );
-            console.log('Welcome email sent to', customerEmail);
           } catch (err) {
-            console.error('Welcome email failed:', err);
+            console.error('Trial ending email failed:', err);
           }
-        } else {
-          console.error('No customer email on checkout session');
         }
         break;
       }
@@ -128,8 +179,8 @@ export async function POST(request: NextRequest) {
         if (sub.customer && priceId) {
           const tier = planTierFromPriceId(priceId);
           const updateData: Record<string, unknown> = { tier, updated_at: new Date().toISOString() };
-          if (sub.status === 'active') {
-            updateData.subscription_status = 'active';
+          if (sub.status === 'active' || sub.status === 'trialing') {
+            updateData.subscription_status = sub.status;
           }
           await supabaseAdmin
             .from('users')

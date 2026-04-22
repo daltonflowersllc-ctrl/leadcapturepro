@@ -1,16 +1,12 @@
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateToken, hashPassword } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import twilio from 'twilio';
 import { stripe } from '@/lib/stripe';
 import { sendWelcomeEmail } from '@/lib/email';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 function extractAreaCode(phone: string): number | null {
   const digits = phone.replace(/\D/g, '');
@@ -34,7 +30,6 @@ async function provisionTwilioNumber(userId: string, userPhone: string | null): 
 
   let availableNumber: string | null = null;
 
-  // Try user's area code first
   if (userPhone) {
     const areaCode = extractAreaCode(userPhone);
     if (areaCode) {
@@ -45,7 +40,6 @@ async function provisionTwilioNumber(userId: string, userPhone: string | null): 
     }
   }
 
-  // Fallback: any available US local number
   if (!availableNumber) {
     const numbers = await client.availablePhoneNumbers('US').local.list({ limit: 1 });
     if (numbers.length > 0) {
@@ -100,25 +94,79 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(password);
     const userId = crypto.randomUUID();
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
     const tier = plan === 'pro' ? 'pro' : plan === 'elite' ? 'elite' : 'starter';
 
+    // Insert with pending status — not activated until Stripe checkout completes
     const { error: insertError } = await supabaseAdmin
       .from('users')
-      .insert({ id: userId, email, password: hashedPassword, name, business_name: businessName || null, phone: phone || null, tier, subscription_status: 'trial', trial_ends_at: trialEndsAt });
+      .insert({
+        id: userId,
+        email,
+        password: hashedPassword,
+        name,
+        business_name: businessName || null,
+        phone: phone || null,
+        tier,
+        subscription_status: 'pending',
+      });
 
     if (insertError) {
       console.error('User insert error:', insertError);
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Provision Twilio phone number; failures are non-fatal
+    // Create Stripe customer
+    const customer = await stripe.customers.create({
+      email,
+      name,
+      metadata: { supabase_user_id: userId, business_name: businessName || '' },
+    });
+
+    // Persist the customer ID immediately so the webhook can look up the user
+    await supabaseAdmin
+      .from('users')
+      .update({ stripe_customer_id: customer.id })
+      .eq('id', userId);
+
+    const priceIdMap: Record<string, string | undefined> = {
+      starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+      pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+      elite: process.env.STRIPE_ELITE_MONTHLY_PRICE_ID,
+    };
+    const priceId = priceIdMap[tier];
+
+    if (!priceId) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+    // Require card entry even during trial; cancel trial automatically if card is absent
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: 7,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'cancel',
+          },
+        },
+        metadata: { supabase_user_id: userId, plan: tier },
+      },
+      payment_method_collection: 'always',
+      success_url: `${appUrl}/dashboard?welcome=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/signup?canceled=true`,
+      allow_promotion_codes: true,
+    });
+
+    // Provision Twilio phone number (non-fatal)
     let twilioNumber = '';
     try {
       await provisionTwilioNumber(userId, phone || null);
-      // Fetch the provisioned number
       const { data: provisioned } = await supabaseAdmin
         .from('phone_numbers')
         .select('twilio_phone_number')
@@ -138,38 +186,11 @@ export async function POST(request: NextRequest) {
 
     const token = generateToken({ userId, email, tier });
 
-    // Create Stripe checkout session so user goes straight to payment (non-fatal)
-    let checkoutUrl: string | null = null;
-    const priceIdMap: Record<string, string | undefined> = {
-      starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
-      pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
-    };
-    const priceId = priceIdMap[tier];
-    if (priceId) {
-      try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-        const session = await stripe.checkout.sessions.create({
-          mode: 'subscription',
-          payment_method_types: ['card'],
-          payment_method_collection: 'always',
-          line_items: [{ price: priceId, quantity: 1 }],
-          subscription_data: { trial_period_days: 7 },
-          success_url: `${appUrl}/dashboard?success=true`,
-          cancel_url: `${appUrl}/subscribe`,
-          customer_email: email,
-          metadata: { userId, plan: tier },
-        });
-        checkoutUrl = session.url;
-      } catch (stripeError) {
-        console.error('Stripe checkout session creation failed during signup:', stripeError);
-      }
-    }
-
     const response = NextResponse.json(
       {
         success: true,
-        user: { id: userId, email, name, businessName: businessName || null, tier, trialEndsAt },
-        checkoutUrl,
+        user: { id: userId, email, name, businessName: businessName || null, tier },
+        checkoutUrl: session.url,
       },
       { status: 201 }
     );
@@ -178,7 +199,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
       path: '/',
     });
 
