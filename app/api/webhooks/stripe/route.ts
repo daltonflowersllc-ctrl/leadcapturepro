@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
 import { sendPaymentFailedEmail, sendAccountSuspendedEmail } from '@/lib/email';
+import { welcomeEmail, sendEmail } from '@/lib/emails/templates';
 
 function planTierFromPriceId(priceId: string): string {
   if (priceId === process.env.STRIPE_PRO_MONTHLY_PRICE_ID) return 'pro';
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const customerEmail = session.customer_details?.email;
+        const customerEmail = session.customer_email || session.customer_details?.email;
         const priceId = session.line_items?.data[0]?.price?.id || session.metadata?.priceId;
 
         if (customerEmail) {
@@ -46,6 +47,37 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq('email', customerEmail);
+
+          const { data: user, error } = await supabaseAdmin
+            .from('users')
+            .select('owner_name, business_name, plan, twilio_number, email')
+            .eq('email', customerEmail)
+            .single();
+
+          if (error || !user) {
+            console.error('User not found for checkout session:', customerEmail);
+            break;
+          }
+
+          const html = welcomeEmail({
+            ownerName: user.owner_name || 'there',
+            businessName: user.business_name || 'your business',
+            twilioNumber: user.twilio_number || 'Assigning shortly',
+            planName: user.plan || 'Starter',
+          });
+
+          try {
+            await sendEmail(
+              customerEmail,
+              "Welcome to LeadCapture Pro — you're live 🎉",
+              html
+            );
+            console.log('Welcome email sent to', customerEmail);
+          } catch (err) {
+            console.error('Welcome email failed:', err);
+          }
+        } else {
+          console.error('No customer email on checkout session');
         }
         break;
       }
