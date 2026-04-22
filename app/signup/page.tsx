@@ -14,6 +14,7 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') || 'starter';
+  const canceled = searchParams.get('canceled') === 'true';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -23,7 +24,7 @@ function SignupForm() {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(canceled ? 'Checkout was canceled. Please complete payment to activate your account.' : '');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,17 +185,23 @@ function SignupForm() {
               />
             </div>
 
+            <div className="mt-2 flex items-center justify-center gap-4 text-xs text-slate-500">
+              <span>✓ No charge for 7 days</span>
+              <span>✓ Cancel anytime</span>
+              <span>✓ Cards processed by Stripe</span>
+            </div>
+
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 mt-2"
+              className="w-full bg-blue-500 hover:bg-blue-400 text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 mt-3"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? 'Creating account...' : 'Start 7-Day Free Trial →'}
             </button>
           </div>
 
           <p className="text-center text-xs text-slate-500 mt-4">
-            7-day free trial — credit card required. Billed on day 8 • 256-bit SSL
+            Credit card required to start your free trial. You won&apos;t be charged until day 8. Cancel anytime from your dashboard — no questions asked.
           </p>
 
           <div className="mt-6 text-center">

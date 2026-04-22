@@ -30,6 +30,14 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
+  if (userRow.subscription_status === 'pending') {
+    redirect('/signup?step=payment');
+  }
+
+  if (userRow.subscription_status === 'canceled') {
+    redirect('/reactivate');
+  }
+
   const user = {
     id: userRow.id,
     email: userRow.email,
