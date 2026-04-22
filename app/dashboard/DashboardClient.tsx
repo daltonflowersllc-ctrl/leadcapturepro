@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LeadInbox from '@/components/dashboard/LeadInbox';
 
 interface User {
   id: string;
@@ -596,6 +597,9 @@ function LeadCard({
 // ─── DashboardClient ─────────────────────────────────────────────────────────
 
 export default function DashboardClient({ user, assignedPhone }: { user: User; assignedPhone: string | null }) {
+  const pathname = usePathname();
+  const isLeadInbox = pathname === '/dashboard/leads';
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState<Usage | null>(null);
@@ -690,7 +694,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           flex: 1,
           minWidth: 0,
           transition: 'margin-left 0.2s ease',
-          background: '#f8fafc',
+          background: isLeadInbox ? '#0a0f1e' : '#f8fafc',
         }}
       >
         {/* Banners */}
@@ -708,6 +712,9 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
           </div>
         )}
 
+        {isLeadInbox ? (
+          <LeadInbox />
+        ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div>
@@ -790,6 +797,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
             </div>
           )}
         </main>
+        )}
       </div>
     </div>
   );
