@@ -3,6 +3,20 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/usage-alerts",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/report-usage-to-stripe",
+      "schedule": "0 0 1 * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

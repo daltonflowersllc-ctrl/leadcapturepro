@@ -4,19 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LeadInbox from '@/components/dashboard/LeadInbox';
+import UsageMeter from '@/components/dashboard/UsageMeter';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  tier: string;
-  subscriptionStatus: string;
-}
-
-interface Usage {
-  smsUsed: number;
-  smsLimit: number;
-  percentage: number;
   tier: string;
   subscriptionStatus: string;
 }
@@ -602,7 +595,6 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usage, setUsage] = useState<Usage | null>(null);
   const [error, setError] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -645,22 +637,9 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
     }
   }, []);
 
-  const fetchUsage = useCallback(async () => {
-    try {
-      const res = await fetch('/api/user/usage');
-      if (res.ok) {
-        const data = await res.json();
-        setUsage(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch usage:', err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchLeads();
-    fetchUsage();
-  }, [fetchLeads, fetchUsage]);
+  }, [fetchLeads]);
 
   const handleStatusChange = (id: string, status: string) => {
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
@@ -735,23 +714,7 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
               <p className="text-gray-500">You&apos;re on the <span className="font-semibold text-blue-600 uppercase">{user.tier}</span> plan</p>
             </div>
 
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 w-full md:w-80">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-gray-700">SMS Usage</span>
-                <span className="text-xs text-gray-500">{usage ? `${usage.smsUsed} of ${usage.smsLimit}` : '...'} SMS</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-                <div
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    (usage?.percentage ?? 0) > 80 ? 'bg-red-500' : (usage?.percentage ?? 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
-                  style={{ width: `${Math.min(usage?.percentage ?? 0, 100)}%` }}
-                ></div>
-              </div>
-              {usage && usage.percentage >= 80 && (
-                <p className="text-[10px] text-red-600 font-bold animate-pulse">Running low on SMS — Upgrade to Pro for 500/month</p>
-              )}
-            </div>
+            <UsageMeter />
 
             <div className="flex flex-col items-end gap-2">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your LeadCapture Number</span>
