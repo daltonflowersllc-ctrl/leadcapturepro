@@ -621,10 +621,23 @@ export default function DashboardClient({ user, assignedPhone }: { user: User; a
 
   const fetchLeads = useCallback(async () => {
     try {
-      const res = await fetch('/api/leads');
+      const res = await fetch('/api/dashboard/leads');
       if (!res.ok) throw new Error('Failed to fetch leads');
       const data = await res.json();
-      setLeads(data.leads || []);
+      const mapped = (data.leads || []).map((row: Record<string, any>) => ({
+        id: row.id,
+        callerName: row.caller_name ?? 'Unknown',
+        callerPhone: row.caller_phone ?? '',
+        callerEmail: row.caller_email ?? null,
+        serviceNeeded: row.service_needed ?? null,
+        urgency: row.urgency ?? null,
+        status: row.status ?? 'new',
+        notes: row.notes ?? null,
+        formData: row.form_data ?? null,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+      setLeads(mapped);
     } catch (err) {
       setError('Could not load leads. Please refresh.');
     } finally {
