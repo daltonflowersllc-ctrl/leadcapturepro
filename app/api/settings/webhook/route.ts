@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     const tier = userRow.tier;
-    if (tier !== 'pro' && tier !== 'elite') {
+    if (tier !== 'premium' && tier !== 'elite') {
       return NextResponse.json(
-        { error: 'Zapier integration requires a Pro or Elite plan' },
+        { error: 'Zapier integration requires a Premium or Elite plan' },
         { status: 403 }
       );
     }

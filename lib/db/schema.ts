@@ -9,7 +9,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   businessName: varchar('business_name', { length: 255 }),
   phone: varchar('phone', { length: 20 }),
-  tier: varchar('tier', { length: 50 }).default('basic').notNull(), // basic, pro, elite
+  tier: varchar('tier', { length: 50 }).default('essential').notNull(), // essential, premium, elite
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
   subscriptionStatus: varchar('subscription_status', { length: 50 }).default('trial'), // trial, active, canceled, past_due

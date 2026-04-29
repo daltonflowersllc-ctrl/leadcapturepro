@@ -9,10 +9,10 @@ import { sendPaymentFailedEmail, sendAccountSuspendedEmail } from '@/lib/email';
 import { welcomeEmail, trialEndingEmail, sendEmail } from '@/lib/emails/templates';
 
 function planTierFromPriceId(priceId: string): string {
-  if (priceId === process.env.STRIPE_PRO_MONTHLY_PRICE_ID) return 'pro';
-  if (priceId === process.env.STRIPE_STARTER_MONTHLY_PRICE_ID) return 'starter';
+  if (priceId === process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID) return 'premium';
+  if (priceId === process.env.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID) return 'essential';
   if (priceId === process.env.STRIPE_ELITE_MONTHLY_PRICE_ID) return 'elite';
-  return 'starter';
+  return 'essential';
 }
 
 export async function POST(request: NextRequest) {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         const subscriptionId = session.subscription as string;
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-        const tier = priceId ? planTierFromPriceId(priceId) : 'starter';
+        const tier = priceId ? planTierFromPriceId(priceId) : 'essential';
         const trialEnd = subscription.trial_end
           ? new Date(subscription.trial_end * 1000).toISOString()
           : null;
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           ownerName: user.name || 'there',
           businessName: user.business_name || 'your business',
           twilioNumber: phoneRows?.[0]?.twilio_phone_number || 'Assigning shortly',
-          planName: user.tier || 'Starter',
+          planName: user.tier || 'Essential',
           trialEnd,
         });
 
@@ -109,14 +109,14 @@ export async function POST(request: NextRequest) {
           const daysLeft = Math.ceil(
             (trialSub.trial_end! * 1000 - Date.now()) / (1000 * 60 * 60 * 24)
           );
-          const planPriceMap: Record<string, number> = { starter: 149, pro: 249, elite: 399 };
+          const planPriceMap: Record<string, number> = { essential: 149, premium: 249, elite: 399 };
           const price = planPriceMap[trialUser.tier] ?? 149;
 
           const html = trialEndingEmail({
             ownerName: trialUser.name || 'there',
             businessName: trialUser.business_name || 'your business',
             daysLeft,
-            planName: trialUser.tier || 'starter',
+            planName: trialUser.tier || 'essential',
             price,
           });
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
           if (user) {
             await supabaseAdmin
               .from('users')
-              .update({ subscription_status: 'canceled', tier: 'starter', updated_at: new Date().toISOString() })
+              .update({ subscription_status: 'canceled', tier: 'essential', updated_at: new Date().toISOString() })
               .eq('id', user.id);
             await sendAccountSuspendedEmail(user.email);
           }

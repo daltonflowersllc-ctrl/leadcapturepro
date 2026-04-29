@@ -5,15 +5,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const planLabels: Record<string, string> = {
-  starter: 'Starter — $149/mo',
-  pro: 'Pro — $249/mo (Most Popular)',
+  essential: 'Essential — $149/mo',
+  premium: 'Premium — $249/mo (Most Popular)',
   elite: 'Elite — $399/mo',
 };
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const plan = searchParams.get('plan') || 'starter';
+  const plan = searchParams.get('plan') || 'essential';
   const canceled = searchParams.get('canceled') === 'true';
 
   const [formData, setFormData] = useState({

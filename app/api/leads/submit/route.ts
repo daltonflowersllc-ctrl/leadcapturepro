@@ -94,11 +94,11 @@ export async function POST(request: NextRequest) {
         description || ''
       );
     } else {
-      // Basic scoring for starter tier
+      // Basic scoring for essential tier
       aiScore = {
         score: urgency === 'high' ? 'hot' : 'warm',
         emoji: urgency === 'high' ? '🔥' : '☀️',
-        reason: 'Basic lead scoring (Upgrade to Pro for AI scoring)',
+        reason: 'Basic lead scoring (Upgrade to Premium for AI scoring)',
         confidence: 1
       };
     }
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         );
         smsBody = rawOwnerSms.replace('[APP_URL]', appUrl);
       } else {
-        // Simple template SMS for starter tier
+        // Simple template SMS for essential tier
         smsBody = `🔔 New Lead: ${callerName} needs ${serviceType || 'service'}. ${aiScore.emoji} Score: ${aiScore.score}. View: ${appUrl}/dashboard`;
       }
 
