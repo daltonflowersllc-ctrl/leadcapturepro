@@ -1,8 +1,8 @@
 import { supabaseAdmin } from './supabase-admin';
 
 export const TIER_LIMITS = {
-  starter: { smsPerMonth: 100, phoneNumbers: 1, teamMembers: 1, aiFeatures: false, zapier: false },
-  pro: { smsPerMonth: 500, phoneNumbers: 3, teamMembers: 2, aiFeatures: true, zapier: true },
+  essential: { smsPerMonth: 100, phoneNumbers: 1, teamMembers: 1, aiFeatures: false, zapier: false },
+  premium: { smsPerMonth: 500, phoneNumbers: 3, teamMembers: 2, aiFeatures: true, zapier: true },
   elite: { smsPerMonth: 99999, phoneNumbers: 5, teamMembers: 99, aiFeatures: true, zapier: true },
 } as const;
 
@@ -33,7 +33,7 @@ export async function checkSmsLimit(userId: string, tier: Tier) {
       .eq('id', userId);
   }
 
-  const limit = TIER_LIMITS[tier]?.smsPerMonth || TIER_LIMITS.starter.smsPerMonth;
+  const limit = TIER_LIMITS[tier]?.smsPerMonth || TIER_LIMITS.essential.smsPerMonth;
   const percentage = (smsUsed / limit) * 100;
 
   return {

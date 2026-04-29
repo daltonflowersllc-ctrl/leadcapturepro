@@ -6,8 +6,8 @@ import { verifyToken } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const PRICE_IDS: Record<string, string | undefined> = {
-  starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
-  pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+  essential: process.env.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID,
+  premium: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
 };
 
 export async function POST(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const validPlans = ['starter', 'pro', 'elite'];
+    const validPlans = ['essential', 'premium', 'elite'];
     if (!validPlans.includes(plan)) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }

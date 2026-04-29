@@ -163,10 +163,10 @@ export default function SettingsPage() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Phone Numbers</h3>
           <p className="text-gray-600 mb-4">
-            {user?.tier === 'basic' 
-              ? 'Basic plan includes 1 phone number.'
-              : user?.tier === 'pro'
-              ? 'Pro plan includes 3 phone numbers.'
+            {user?.tier === 'essential'
+              ? 'Essential plan includes 1 phone number.'
+              : user?.tier === 'premium'
+              ? 'Premium plan includes 3 phone numbers.'
               : 'Elite plan includes 5 phone numbers.'}
           </p>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
@@ -188,7 +188,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Integrations (Pro and Elite only) */}
-        {(user?.tier === 'pro' || user?.tier === 'elite') && (
+        {(user?.tier === 'premium' || user?.tier === 'elite') && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
             <h3 className="text-xl font-bold text-gray-900 mb-1">Integrations</h3>
             <p className="text-sm text-gray-500 mb-5">

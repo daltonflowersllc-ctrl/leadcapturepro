@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password);
     const userId = crypto.randomUUID();
 
-    const tier = plan === 'pro' ? 'pro' : plan === 'elite' ? 'elite' : 'starter';
+    const tier = plan === 'premium' ? 'premium' : plan === 'elite' ? 'elite' : 'essential';
 
     // Insert with pending status — not activated until Stripe checkout completes
     const { error: insertError } = await supabaseAdmin
@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
       .eq('id', userId);
 
     const priceIdMap: Record<string, string | undefined> = {
-      starter: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
-      pro: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+      essential: process.env.STRIPE_ESSENTIAL_MONTHLY_PRICE_ID,
+      premium: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
       elite: process.env.STRIPE_ELITE_MONTHLY_PRICE_ID,
     };
     const priceId = priceIdMap[tier];

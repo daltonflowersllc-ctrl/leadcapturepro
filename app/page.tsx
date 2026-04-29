@@ -111,11 +111,11 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {[
-              { title: 'AI Lead Scoring', badge: 'Pro', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Instantly identify high-value emergency jobs vs tire kickers.' },
+              { title: 'AI Lead Scoring', badge: 'Premium', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Instantly identify high-value emergency jobs vs tire kickers.' },
               { title: 'AI-Personalized SMS', badge: 'All Plans', badgeColor: 'bg-emerald-500/10 text-emerald-400', desc: 'Each response is custom-tailored to the caller\'s specific needs.' },
-              { title: 'AI Call Scripts', badge: 'Pro', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Get perfect closing scripts for every lead before you call them back.' },
-              { title: 'Voicemail Transcription', badge: 'Pro', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Read voicemails instantly in your dashboard without listening.' },
-              { title: 'Lead Intelligence', badge: 'Pro', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Deep insights into lead urgency, service type, and budget.' },
+              { title: 'AI Call Scripts', badge: 'Premium', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Get perfect closing scripts for every lead before you call them back.' },
+              { title: 'Voicemail Transcription', badge: 'Premium', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Read voicemails instantly in your dashboard without listening.' },
+              { title: 'Lead Intelligence', badge: 'Premium', badgeColor: 'bg-blue-500/10 text-blue-400', desc: 'Deep insights into lead urgency, service type, and budget.' },
             ].map((feature, i) => (
               <div key={i} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl hover:border-slate-700 transition group">
                 <div className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase mb-4 ${feature.badgeColor}`}>
@@ -210,9 +210,9 @@ export default function LandingPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Starter */}
+            {/* Essential */}
             <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-2">Starter</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Essential</h3>
               <div className="text-4xl font-black text-white mb-6">${isAnnual ? '1490' : '149'}<span className="text-lg text-slate-500 font-medium">/{isAnnual ? 'yr' : 'mo'}</span></div>
               <ul className="space-y-4 mb-8 flex-1">
                 <li className="flex items-center gap-3 text-slate-400 text-sm">✅ 100 SMS per month</li>
@@ -220,16 +220,16 @@ export default function LandingPage() {
                 <li className="flex items-center gap-3 text-slate-400 text-sm">✅ AI-Personalized SMS</li>
                 <li className="flex items-center gap-3 text-slate-400 text-sm">✅ Lead Dashboard CRM</li>
               </ul>
-              <Link href="/signup?plan=starter" className="w-full bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-xl font-bold transition text-center">
+              <Link href="/signup?plan=essential" className="w-full bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-xl font-bold transition text-center">
                 Start Free Trial
               </Link>
               <p className="text-xs text-muted-foreground mt-1 text-center text-slate-500">Credit card required. Billed on day 8.</p>
             </div>
 
-            {/* Pro */}
+            {/* Premium */}
             <div className="bg-slate-900 border-2 border-blue-600 p-8 rounded-3xl flex flex-col relative scale-105 shadow-2xl shadow-blue-900/20">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-full">Most Popular</div>
-              <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
               <div className="text-4xl font-black text-white mb-6">${isAnnual ? '2490' : '249'}<span className="text-lg text-slate-500 font-medium">/{isAnnual ? 'yr' : 'mo'}</span></div>
               <ul className="space-y-4 mb-8 flex-1">
                 <li className="flex items-center gap-3 text-slate-200 text-sm font-medium">✅ 500 SMS per month</li>
@@ -239,7 +239,7 @@ export default function LandingPage() {
                 <li className="flex items-center gap-3 text-slate-200 text-sm font-medium">✅ Voicemail Transcription</li>
                 <li className="flex items-center gap-3 text-slate-200 text-sm font-medium">✅ Zapier Integration</li>
               </ul>
-              <Link href="/signup?plan=pro" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold transition text-center">
+              <Link href="/signup?plan=premium" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold transition text-center">
                 Start Free Trial
               </Link>
               <p className="text-xs text-muted-foreground mt-1 text-center text-slate-500">Credit card required. Billed on day 8.</p>

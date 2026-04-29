@@ -26,7 +26,7 @@ async function handlePlanClick(planName: string, planHref: string) {
 
 const plans = [
   {
-    name: 'Starter',
+    name: 'Essential',
     monthly: 149,
     annual: 1490,
     annualSavings: 298,
@@ -45,10 +45,10 @@ const plans = [
     ],
     cta: 'Start 7-Day Trial',
     ctaStyle: 'bg-white text-slate-900 hover:bg-slate-100',
-    href: '/signup?plan=starter',
+    href: '/signup?plan=essential',
   },
   {
-    name: 'Pro',
+    name: 'Premium',
     monthly: 249,
     annual: 2490,
     annualSavings: 498,
@@ -56,7 +56,7 @@ const plans = [
     border: 'border-blue-400',
     badge: 'MOST POPULAR',
     features: [
-      'Everything in Starter',
+      'Everything in Essential',
       'Smart lead form (service type, urgency, budget, photo)',
       'Zapier integration — 5,000+ apps',
       'Custom SMS templates',
@@ -69,7 +69,7 @@ const plans = [
     ],
     cta: 'Start 7-Day Trial',
     ctaStyle: 'bg-white text-blue-700 hover:bg-blue-50',
-    href: '/signup?plan=pro',
+    href: '/signup?plan=premium',
   },
   {
     name: 'Elite',

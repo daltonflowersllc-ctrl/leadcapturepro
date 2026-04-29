@@ -124,15 +124,15 @@ export default function UpgradePage() {
             )}
           </div>
 
-          {/* Pro Card - Featured */}
+          {/* Premium Card - Featured */}
           <div className="rounded-xl shadow-xl p-8 border-2 border-blue-600 bg-white transform scale-105 relative">
             <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-bold rounded-bl-lg rounded-tr-lg">
               MOST POPULAR
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
             <p className="text-4xl font-bold text-gray-900 mb-2">$349</p>
             <p className="text-gray-600 mb-6">per month</p>
-            {user?.tier === 'pro' && (
+            {user?.tier === 'premium' && (
               <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-center mb-6 font-semibold">
                 Current Plan
               </div>
@@ -169,13 +169,13 @@ export default function UpgradePage() {
                 Call Logs (30 days)
               </li>
             </ul>
-            {user?.tier !== 'pro' && (
+            {user?.tier !== 'premium' && (
               <button
-                onClick={() => handleUpgrade('pro')}
+                onClick={() => handleUpgrade('premium')}
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-semibold"
               >
-                {loading ? 'Processing...' : 'Upgrade to Pro'}
+                {loading ? 'Processing...' : 'Upgrade to Premium'}
               </button>
             )}
           </div>
